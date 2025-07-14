@@ -1,0 +1,6 @@
+__pycache__/
+.vevn/
+.vscode/
+.pypirc
+debug.py
+uv.lock
