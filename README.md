@@ -12,8 +12,18 @@
 
 ## 📦 安装方式
 
+使用 pip 安装：
+
+```bash
+pip install autoxkit
+```
+
 下载源码后，从本地目录安装：
 
 ```bash
 pip install .
 ```
+
+## github 地址
+
+https://github.com/YorickFin/autoxkit
