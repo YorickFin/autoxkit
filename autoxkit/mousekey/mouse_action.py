@@ -1,20 +1,6 @@
 import ctypes
 import time
-
-# 定义常量
-MOUSEEVENTF_MOVE       = 0x0001
-MOUSEEVENTF_LEFTDOWN   = 0x0002
-MOUSEEVENTF_LEFTUP     = 0x0004
-MOUSEEVENTF_RIGHTDOWN  = 0x0008
-MOUSEEVENTF_RIGHTUP    = 0x0010
-MOUSEEVENTF_MIDDLEDOWN = 0x0020
-MOUSEEVENTF_MIDDLEUP   = 0x0040
-MOUSEEVENTF_XDOWN      = 0x0080
-MOUSEEVENTF_XUP        = 0x0100
-MOUSEEVENTF_WHEEL      = 0x0800
-MOUSEEVENTF_HWHEEL     = 0x1000
-XBUTTON1 = 0x0001
-XBUTTON2 = 0x0002
+from .constants import Hex_Mouse_Code as HMC
 
 # 定义结构体
 class MOUSEINPUT(ctypes.Structure):
@@ -65,13 +51,13 @@ def mouse_action(flags, x=0, y=0, data=0):
 
 def left_down():
     """鼠标左键按下"""
-    mouse_action(MOUSEEVENTF_LEFTDOWN)
+    mouse_action(HMC["LeftDown"])
 
 def left_up():
     """鼠标左键释放"""
-    mouse_action(MOUSEEVENTF_LEFTUP)
+    mouse_action(HMC["LeftUp"])
 
-def left_click(delay=0.04):
+def left_click(delay: float=0.04):
     """鼠标左键点击（可设置按下持续时间）"""
     left_down()
     time.sleep(delay)
@@ -79,27 +65,41 @@ def left_click(delay=0.04):
 
 def right_down():
     """鼠标右键按下"""
-    mouse_action(MOUSEEVENTF_RIGHTDOWN)
+    mouse_action(HMC["RightDown"])
 
 def right_up():
     """鼠标右键释放"""
-    mouse_action(MOUSEEVENTF_RIGHTUP)
+    mouse_action(HMC["RightUp"])
 
-def right_click(delay=0.04):
+def right_click(delay: float=0.04):
     """鼠标右键点击（可设置按下持续时间）"""
     right_down()
     time.sleep(delay)
     right_up()
 
+def middle_down():
+    """鼠标中键按下"""
+    mouse_action(HMC["MiddleDown"])
+
+def middle_up():
+    """鼠标中键释放"""
+    mouse_action(HMC["MiddleUp"])
+
+def middle_click(delay: float=0.04):
+    """鼠标中键点击（可设置按下持续时间）"""
+    middle_down()
+    time.sleep(delay)
+    middle_up()
+
 def side1_down():
     """鼠标侧键1（前进键）按下"""
-    mouse_action(MOUSEEVENTF_XDOWN, data=XBUTTON1)
+    mouse_action(HMC["XDown"], data=HMC["XButton1"])
 
 def side1_up():
     """鼠标侧键1（前进键）释放"""
-    mouse_action(MOUSEEVENTF_XUP, data=XBUTTON1)
+    mouse_action(HMC["XUp"], data=HMC["XButton1"])
 
-def side1_click(delay=0.04):
+def side1_click(delay: float=0.04):
     """鼠标侧键1点击（可设置按下持续时间）"""
     side1_down()
     time.sleep(delay)
@@ -107,13 +107,13 @@ def side1_click(delay=0.04):
 
 def side2_down():
     """鼠标侧键2（后退键）按下"""
-    mouse_action(MOUSEEVENTF_XDOWN, data=XBUTTON2)
+    mouse_action(HMC["XDown"], data=HMC["XButton2"])
 
 def side2_up():
     """鼠标侧键2（后退键）释放"""
-    mouse_action(MOUSEEVENTF_XUP, data=XBUTTON2)
+    mouse_action(HMC["XUp"], data=HMC["XButton2"])
 
-def side2_click(delay=0.04):
+def side2_click(delay: float=0.04):
     """鼠标侧键2点击（可设置按下持续时间）"""
     side2_down()
     time.sleep(delay)
@@ -121,7 +121,7 @@ def side2_click(delay=0.04):
 
 def move_relative(dx: int, dy: int):
     """相对移动，相对当前鼠标位置，值：± int"""
-    mouse_action(MOUSEEVENTF_MOVE, x=dx, y=dy)
+    mouse_action(HMC["Move"], x=dx, y=dy)
 
 def move_absolute(x: int, y: int):
     """绝对移动鼠标到屏幕坐标"""
@@ -130,8 +130,8 @@ def move_absolute(x: int, y: int):
     screen_height = ctypes.windll.user32.GetSystemMetrics(1)
     abs_x = int((x / screen_width) * 65535)
     abs_y = int((y / screen_height) * 65535)
-    mouse_action(MOUSEEVENTF_MOVE | 0x8000, x=abs_x, y=abs_y)
+    mouse_action(HMC["Move"] | 0x8000, x=abs_x, y=abs_y)
 
 def wheel_scroll(amount: int):
-    """垂直滚轮滚动（正数向上，负数向下）"""
-    mouse_action(MOUSEEVENTF_WHEEL, data=amount*10)
+    """垂直滚轮滚动（正值向上，负值向下）"""
+    mouse_action(HMC["Wheel"], data=amount*10)

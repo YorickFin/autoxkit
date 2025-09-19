@@ -1,20 +1,22 @@
 
 import time
-from autoxkit import set_event_handlers, start_listening, stop_listening, get_mouse_position
+from autoxkit.mousekey import (set_event_handlers, start_listening, stop_listening,
+                               get_mouse_position, KeyEvent, MouseEvent)
+
 
 # 获取鼠标位置
 print(get_mouse_position())
 
-def key_down(event):
+def key_down(event: KeyEvent):
     print('keydown', event.key_name)
 
-def key_up(event):
+def key_up(event: KeyEvent):
     print('keyup', event.key_name)
 
-def mouse_down(event):
+def mouse_down(event: MouseEvent):
     print('mousedown', event.button, event.position)
 
-def mouse_up(event):
+def mouse_up(event: MouseEvent):
     print('mouseup', event.button, event.position)
 
 # 注册自定义回调

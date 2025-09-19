@@ -4,3 +4,4 @@ __pycache__/
 .dist/
 autoxkit.egg-info/
 debug.py
+main.py

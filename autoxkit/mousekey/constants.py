@@ -1,8 +1,6 @@
-import ctypes
-import time
 
-# 键盘按键码
-Hex_key_code = {
+# 键盘16进制码表
+Hex_Key_Code = {
     "A": 0x41, "B": 0x42, "C": 0x43, "D": 0x44, "E": 0x45, "F": 0x46, "G": 0x47,
     "H": 0x48, "I": 0x49, "J": 0x4a, "K": 0x4b, "L": 0x4c, "M": 0x4d, "N": 0x4e,
     "O": 0x4f, "P": 0x50, "Q": 0x51, "R": 0x52, "S": 0x53, "T": 0x54, "U": 0x55,
@@ -24,30 +22,23 @@ Hex_key_code = {
     "Volume_Up": 0xAF, "Volume_Mute": 0xAD, "Launch_App2": 0xB7,
 }
 
-def key_down(key_name: str):
-    """模拟按下按键"""
-    ctypes.windll.user32.keybd_event(Hex_key_code[key_name], 0, 0, 0)
+# 鼠标16进制码表
+Hex_Mouse_Code = {
+    "Move": 0x0001, "Wheel": 0x0800,
+    "LeftDown": 0x0002, "LeftUp": 0x0004,
+    "RightDown": 0x0008, "RightUp": 0x0010,
+    "MiddleDown": 0x0020, "MiddleUp": 0x0040,
+    "XDown": 0x0080, "XUp": 0x0100, "XButton1": 0x0001, "XButton2": 0x0002,
+}
 
-def key_up(key_name: str):
-    """模拟释放按键"""
-    ctypes.windll.user32.keybd_event(Hex_key_code[key_name], 0, 2, 0)
-
-def key_click(key_name: str, duration=0.04):
-    """模拟单击按键"""
-    key_down(key_name)
-    time.sleep(duration)
-    key_up(key_name)
-
-def key_combination(keys: list, duration=0.1):
-    """模拟组合键"""
-
-    for key_name in keys:
-        key_down(key_name)
-        time.sleep(0.04)
-
-    # 保持组合键状态
-    time.sleep(duration)
-
-    for key_name in reversed(keys):
-        key_up(key_name)
-        time.sleep(0.04)
+# 钩子16进制码表
+Hex_Hook_Code = {
+    "Key_LL": 0x000D,
+    "KeyDown": 0x0100, "KeyUp": 0x0101, "SysKeyDown": 0x0104, "SysKeyUp": 0x0105,
+    "Mouse_LL": 0x000E,
+    "LeftDown": 0x0201, "LeftUp": 0x0202,
+    "RightDown": 0x0204, "RightUp": 0x0205,
+    "MiddleDown": 0x0207, "MiddleUp": 0x0208,
+    "XDown": 0x020B, "XUp": 0x020C, "XButton1": 0x0001, "XButton2": 0x0002,
+    "PM_REMOVE": 0x0001,
+}
