@@ -1,4 +1,4 @@
-from .mouse_action import (
+from .action_mouse import (
     left_down, left_up, left_click,
     right_down, right_up, right_click,
     middle_down, middle_up, middle_click,
@@ -7,11 +7,11 @@ from .mouse_action import (
     move_relative, move_absolute, wheel_scroll
 )
 
-from .key_action import (
+from .action_keyboard import (
     key_down, key_up, key_click, key_combination
 )
 
-from .mouse_key_hook import (
+from .hook_impl import (
     start_listening, stop_listening, set_event_handlers,
     get_mouse_position, KeyEvent, MouseEvent
 )
