@@ -11,10 +11,9 @@ from .action_keyboard import (
     key_down, key_up, key_click, key_combination
 )
 
-from .hook_impl import (
-    start_listening, stop_listening, set_event_handlers,
-    get_mouse_position, KeyEvent, MouseEvent
-)
+from .hook_listener import HookListener, KeyEvent, MouseEvent
+
+from .hotkey_listener import HotkeyListener
 
 __all__ = [
     # 鼠标操作
@@ -29,7 +28,9 @@ __all__ = [
     "key_down", "key_up", "key_click", "key_combination",
 
     # 鼠标键盘钩子
-    "start_listening","stop_listening","set_event_handlers",
-    "get_mouse_position", "KeyEvent", "MouseEvent"
+    "HookListener", "KeyEvent", "MouseEvent",
+
+    # 热键监听器
+    "HotkeyListener",
 ]
 

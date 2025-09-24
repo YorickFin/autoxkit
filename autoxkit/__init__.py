@@ -8,8 +8,9 @@ from .mousekey import (
 
     key_down, key_up, key_click, key_combination,
 
-    start_listening, stop_listening, set_event_handlers,
-    get_mouse_position, KeyEvent, MouseEvent
+    HookListener, KeyEvent, MouseEvent,
+
+    HotkeyListener
 )
 
 __all__ = [
@@ -25,6 +26,8 @@ __all__ = [
     "key_down", "key_up", "key_click", "key_combination",
 
     # 鼠标键盘钩子
-    "start_listening","stop_listening","set_event_handlers",
-    "get_mouse_position", "KeyEvent", "MouseEvent"
+    "HookListener", "KeyEvent", "MouseEvent",
+
+    # 热键监听器
+    "HotkeyListener",
 ]
