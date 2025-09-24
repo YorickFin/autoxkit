@@ -1,12 +1,7 @@
 from .mousekey import (
-    left_down, left_up, left_click,
-    right_down, right_up, right_click,
-    middle_down, middle_up, middle_click,
-    side1_down, side1_up, side1_click,
-    side2_down, side2_up, side2_click,
-    move_relative, move_absolute, wheel_scroll,
+    MouseControl,
 
-    key_down, key_up, key_click, key_combination,
+    KeyBoardControl,
 
     HookListener, KeyEvent, MouseEvent,
 
@@ -14,16 +9,11 @@ from .mousekey import (
 )
 
 __all__ = [
-    # 鼠标操作
-    "left_down", "left_up", "left_click",
-    "right_down", "right_up", "right_click",
-    "middle_down","middle_up","middle_click",
-    "side1_down","side1_up","side1_click",
-    "side2_down","side2_up","side2_click",
-    "move_relative","move_absolute", "wheel_scroll",
+    # 鼠标控制
+    "MouseControl",
 
-    # 键盘操作
-    "key_down", "key_up", "key_click", "key_combination",
+    # 键盘控制
+    "KeyBoardControl",
 
     # 鼠标键盘钩子
     "HookListener", "KeyEvent", "MouseEvent",

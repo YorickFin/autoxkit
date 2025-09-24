@@ -132,14 +132,15 @@ class HookListener:
         try:
             target.remove(func)
         except ValueError:
-            pass
+            raise ValueError("function not found: " + str(func))
 
     # 获取当前鼠标位置
     def get_mouse_position(self):
         pt = wintypes.POINT()
         if user32.GetCursorPos(byref(pt)):
             return (pt.x, pt.y)
-        return (None, None)
+        else:
+            raise ctypes.WinError(ctypes.get_last_error())
 
     # 内部键盘回调（bound method -> can be wrapped by CFUNCTYPE）
     def _keyboard_proc(self, nCode, wParam, lParam):

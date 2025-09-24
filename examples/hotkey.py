@@ -10,10 +10,10 @@ def find_func():
 def save_as_func():
     print("另存 - Ctrl+Shift+S 触发")
 
-listener = HotkeyListener(timeout=2.0)
-listener.register_hotkey("保存", ("Lctrl", "S"), save_func)
-listener.register_hotkey("查找", ("Lctrl", "F"), find_func)
-listener.register_hotkey("另存", ("Lctrl", "Lshift", "S"), save_as_func)
+hotkeylistener = HotkeyListener(timeout=2.0)
+hotkeylistener.register_hotkey("保存", ("Lctrl", "S"), save_func)
+hotkeylistener.register_hotkey("查找", ("Lctrl", "F"), find_func)
+hotkeylistener.register_hotkey("另存", ("Lctrl", "Lshift", "S"), save_as_func)
 
 if __name__ == "__main__":
     print("Hotkey Listener 正在运行... 按 Ctrl+C 退出")
@@ -22,5 +22,5 @@ if __name__ == "__main__":
         while True:
             time.sleep(1)
     except Exception:
-        listener.stop()
+        hotkeylistener.stop()
         print("已退出")
