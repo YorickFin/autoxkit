@@ -1,0 +1,57 @@
+version = 1
+revision = 2
+requires-python = ">=3.6"
+resolution-markers = [
+    "python_full_version >= '3.9'",
+    "python_full_version == '3.8.*'",
+    "python_full_version < '3.8'",
+]
+
+[[package]]
+name = "autoxkit"
+version = "0.2.1"
+source = { editable = "." }
+dependencies = [
+    { name = "mss", version = "7.0.1", source = { registry = "http://mirrors.aliyun.com/pypi/simple/" }, marker = "python_full_version < '3.8'" },
+    { name = "mss", version = "9.0.2", source = { registry = "http://mirrors.aliyun.com/pypi/simple/" }, marker = "python_full_version == '3.8.*'" },
+    { name = "mss", version = "10.1.0", source = { registry = "http://mirrors.aliyun.com/pypi/simple/" }, marker = "python_full_version >= '3.9'" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "mss", specifier = ">=7.0.1" }]
+
+[[package]]
+name = "mss"
+version = "7.0.1"
+source = { registry = "http://mirrors.aliyun.com/pypi/simple/" }
+resolution-markers = [
+    "python_full_version < '3.8'",
+]
+sdist = { url = "http://mirrors.aliyun.com/pypi/packages/59/9a/121195642a219bbce975330dfa6236dc0d6bb1ef12fc01967eb7eb0e7d6a/mss-7.0.1.tar.gz", hash = "sha256:f14cee528903c3b01d3b8f1209cd498422f71e3d0d2d92c5b933edd3b9772022" }
+wheels = [
+    { url = "http://mirrors.aliyun.com/pypi/packages/b0/4c/99dcba4d3654b5e5498f99c800108202660ba9d216168dd7feb9dc8d6c90/mss-7.0.1-py3-none-any.whl", hash = "sha256:c8d69b5c1aefc19fb4d37802bfee9ebae5bb86fc42f1ab04cb93b32b0eaae451" },
+]
+
+[[package]]
+name = "mss"
+version = "9.0.2"
+source = { registry = "http://mirrors.aliyun.com/pypi/simple/" }
+resolution-markers = [
+    "python_full_version == '3.8.*'",
+]
+sdist = { url = "http://mirrors.aliyun.com/pypi/packages/13/b5/6a72edca03a4066475eb4b4e296b5635de64cf15bd1c4e58c2d86087bd6e/mss-9.0.2.tar.gz", hash = "sha256:c96a4ec73224da7db22bc07ef3cfaa18f8b86900d1872e29113bbcef0093a21e" }
+wheels = [
+    { url = "http://mirrors.aliyun.com/pypi/packages/b8/ce/a27f12f03decd8e6d30d3c595671b8dba32e9c33255749eb59a163e8c95c/mss-9.0.2-py3-none-any.whl", hash = "sha256:685fa442cc96d8d88b4eb7aadbcccca7b858e789c9259b603e1ef0e435b60425" },
+]
+
+[[package]]
+name = "mss"
+version = "10.1.0"
+source = { registry = "http://mirrors.aliyun.com/pypi/simple/" }
+resolution-markers = [
+    "python_full_version >= '3.9'",
+]
+sdist = { url = "http://mirrors.aliyun.com/pypi/packages/40/ca/49b67437a8c46d9732c9c274d7b1fc0c181cfe290d699a0c5e94701dfe79/mss-10.1.0.tar.gz", hash = "sha256:7182baf7ee16ca569e2804028b6ab9bcbf6be5c46fc2880840f33b513b9cb4f8" }
+wheels = [
+    { url = "http://mirrors.aliyun.com/pypi/packages/23/28/1e3e5cd1d677cca68b26166f704f72e35b1e8b6d5076d8ebeebc4e40a649/mss-10.1.0-py3-none-any.whl", hash = "sha256:9179c110cadfef5dc6dc4a041a0cd161c74c379218648e6640b48c6b5cfe8918" },
+]

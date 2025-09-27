@@ -1,6 +1,4 @@
-from .color_match import (get_screen_color, color_match)
+from .color_matcher import ColorMatcher
 
-__all__ = [
-    # 颜色匹配相关函数
-    "get_screen_color", "color_match",
-]
+
+__all__ = ["ColorMatcher"]

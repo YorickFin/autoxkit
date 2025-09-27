@@ -8,6 +8,8 @@ from .mousekey import (
     HotkeyListener
 )
 
+from .icmatch import ColorMatcher
+
 __all__ = [
     # 鼠标控制
     "MouseControl",
@@ -20,4 +22,7 @@ __all__ = [
 
     # 热键监听器
     "HotkeyListener",
+
+    # 颜色匹配
+    "ColorMatcher"
 ]
