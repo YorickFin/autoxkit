@@ -3,6 +3,7 @@ import math
 
 class ColorMatcher:
     def __init__(self):
+        self.sct = mss.mss()
         self.max_distance = math.sqrt(255**2 * 3)  # RGB 空间最大距离 ≈ 441.67
 
     def _hex_to_rgb(self, hex_color: str):
@@ -12,24 +13,24 @@ class ColorMatcher:
         hex_color = hex_color.lstrip('#')
         return tuple(int(hex_color[i:i+2], 16) for i in (0, 2, 4))
 
-    def get_screen_color(self, x: int, y: int, is_return_hex: bool = True) -> str | tuple:
+    def get_screen_color(self, x: int, y: int, is_return_hex: bool = False) -> str | tuple:
         """
-        获取屏幕坐标 (x, y) 处的颜色，返回十六进制格式字符串，如 #FFAABB
+            获取屏幕坐标 (x, y) 处的颜色
+        Parameters:
+            x (int): 屏幕坐标 x 轴
+            y (int): 屏幕坐标 y 轴
+            is_return_hex (bool, optional): 是否返回十六进制格式字符串，默认返回 RGB 元组
+        Returns:
+            str | tuple: 十六进制格式字符串，如 #FFAABB 或 (r, g, b) 元组
         """
-        with mss.mss() as sct:
-            # 获取包含该像素的最小区域(1x1像素)
-            monitor = {"top": y, "left": x, "width": 1, "height": 1}
-            img = sct.grab(monitor)
+        monitor = {"top": y, "left": x, "width": 1, "height": 1}
+        img = self.sct.grab(monitor)
+        pixel = img.pixel(0, 0)
 
-            # 获取像素颜色(RGB格式)
-            pixel = img.pixel(0, 0)
-
-            if is_return_hex:
-                # 转换为十六进制字符串
-                return f"#{pixel[0]:02X}{pixel[1]:02X}{pixel[2]:02X}"
-            else:
-                # 返回 RGB 元组
-                return pixel
+        if is_return_hex:   # 返回十六进制字符串
+            return f"#{pixel[0]:02X}{pixel[1]:02X}{pixel[2]:02X}"
+        else:
+            return pixel    # 返回 RGB 元组
 
     def color_match(self, source_color: str | tuple, target_color: str | tuple, similarity: float = 0.8) -> tuple:
         """

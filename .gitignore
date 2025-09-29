@@ -5,3 +5,4 @@ __pycache__/
 autoxkit.egg-info/
 debug.py
 main.py
+uv.lock

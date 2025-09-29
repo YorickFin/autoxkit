@@ -37,8 +37,8 @@ print(color_matcher.color_match(
 ))
 
 # 获取坐标颜色
-print(color_matcher.get_screen_color(x=100, y=100))     # 默认返回十六进制字符串
-print(color_matcher.get_screen_color(x=100, y=100, is_return_hex=False))     # 返回RGB元组
+print(color_matcher.get_screen_color(x=100, y=100))     # 默认返回RGB元组
+print(color_matcher.get_screen_color(x=100, y=100, is_return_hex=True))     # 返回十六进制字符串
 
 # 十六进制颜色转RGB三元组
 print(color_matcher._hex_to_rgb('#FF0000'))

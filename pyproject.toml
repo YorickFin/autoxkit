@@ -16,6 +16,8 @@ authors = [
 
 dependencies = [
     "mss>=7.0.1",
+    "numpy>=1.19.5",
+    "scipy>=1.5.4",
 ]
 classifiers = [
   "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
