@@ -61,6 +61,15 @@ class ImageMatcher:
     def image_match(self, source_image: np.ndarray, target_image: np.ndarray,
                     similarity: float = 0.8
                     ) -> tuple[tuple, float]:
+        """
+        匹配图像
+        Parameters:
+            source_image (np.ndarray): 待匹配图像
+            target_image (np.ndarray): 目标图像
+            similarity (float, optional): 相似度阈值，默认 0.8。
+        Returns:
+            tuple[tuple, float]: 匹配结果元组，包含匹配位置和相似度。
+        """
 
         return self._match_ncc(source_image, target_image, similarity)
 
@@ -94,7 +103,7 @@ class ImageMatcher:
             nccs.append(ncc)
 
         if not nccs:  # 所有通道都跳过了
-            return None
+            return False, 0.0
 
         ncc_mean = np.mean(nccs, axis=0)
 
