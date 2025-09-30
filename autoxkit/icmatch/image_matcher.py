@@ -12,11 +12,11 @@ class ImageMatcher:
     def __init__(self):
         self.sct = mss.mss()
 
-    def _to_gray(self, img: np.ndarray) -> np.ndarray:
+    def _to_gray(self, image: np.ndarray) -> np.ndarray:
         """
         将 RGB 转灰度
         """
-        return np.mean(img, axis=2).astype(np.float32)
+        return np.mean(image, axis=2).astype(np.float32)
 
     def image_to_numpy(self, image) -> np.ndarray:
         """
@@ -117,8 +117,8 @@ class ImageMatcher:
         max_sim = np.max(ncc)
         if max_sim >= similarity:
             y, x = np.unravel_index(np.argmax(ncc), ncc.shape)
-            return (x, y), max_sim
+            return (int(x), int(y)), round(float(max_sim), 3)
         else:
-            return False, max_sim
+            return False, round(float(max_sim), 3)
 
 
