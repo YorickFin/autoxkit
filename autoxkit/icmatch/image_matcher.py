@@ -1,7 +1,7 @@
 import os
 import mss
 import numpy as np
-from scipy import signal
+from scipy.signal import fftconvolve
 from mss.tools import to_png
 from mss.screenshot import ScreenShot
 
@@ -11,6 +11,12 @@ from .tools import read_image, RectTuple
 class ImageMatcher:
     def __init__(self):
         self.sct = mss.mss()
+
+    def _to_gray(self, img: np.ndarray) -> np.ndarray:
+        """
+        将 RGB 转灰度
+        """
+        return np.mean(img, axis=2).astype(np.float32)
 
     def image_to_numpy(self, image) -> np.ndarray:
         """
@@ -77,41 +83,42 @@ class ImageMatcher:
                    similarity: float = 0.8
                    ) -> tuple[tuple, float]:
         """
-        使用归一化互相关(NCC)方法匹配图像
+        简介:
+            使用 FFT 加速的归一化互相关(NCC)方法匹配图像 (灰度)。
+
+        性能参考:
+            性能为 0.006秒 ~ 0.2秒 ~ 0.6秒 之间，取决于图像大小。
+            0.006秒 = source_image: 300x300, target_image: 100x100
+            0.2  秒 = source_image: 2560x1440, target_image: 100x100
+            0.6  秒 = source_image: 2560x1440, target_image: 2460x1340
         """
-        nccs = []
-        for c in range(source_image.shape[2]):
-            s_channel = source_image[..., c]
-            t_channel = target_image[..., c]
 
-            # 计算分母部分，避免除零
-            t_norm = np.linalg.norm(t_channel)
-            if t_norm == 0:
-                # 如果模板全为零，跳过该通道或处理特殊情况
-                continue
+        # 转灰度
+        s_channel = self._to_gray(source_image)
+        t_channel = self._to_gray(target_image)
 
-            # 计算分子：互相关
-            numerator = signal.correlate2d(s_channel, t_channel, mode='valid')
-            # 计算分母：局部能量 × 模板能量
-            s_squared = signal.correlate2d(s_channel**2, np.ones_like(t_channel), mode='valid')
-            denominator = np.sqrt(s_squared) * t_norm
-
-            # 避免除零，将分母为零的位置设为很小的正数
-            denominator[denominator == 0] = 1e-8
-
-            ncc = numerator / denominator
-            nccs.append(ncc)
-
-        if not nccs:  # 所有通道都跳过了
+        # 模板能量
+        t_norm = np.linalg.norm(t_channel)
+        if t_norm == 0:
             return False, 0.0
 
-        ncc_mean = np.mean(nccs, axis=0)
+        # 计算分子：互相关 (FFT 卷积)
+        numerator = fftconvolve(s_channel, np.flipud(np.fliplr(t_channel)), mode='valid')
+
+        # 计算分母：局部能量 × 模板能量
+        s_squared = fftconvolve(s_channel**2, np.ones_like(t_channel), mode='valid')
+        denominator = np.sqrt(s_squared) * t_norm
+
+        denominator[denominator == 0] = 1e-8  # 避免除零
+
+        ncc = numerator / denominator
 
         # 找到最佳匹配位置
-        max_sim = np.max(ncc_mean)
+        max_sim = np.max(ncc)
         if max_sim >= similarity:
-            y, x = np.unravel_index(np.argmax(ncc_mean), ncc_mean.shape)
+            y, x = np.unravel_index(np.argmax(ncc), ncc.shape)
             return (x, y), max_sim
         else:
             return False, max_sim
+
 

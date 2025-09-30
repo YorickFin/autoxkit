@@ -6,3 +6,4 @@ autoxkit.egg-info/
 debug.py
 main.py
 uv.lock
+examples/screen_image.png

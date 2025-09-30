@@ -1,3 +1,4 @@
+import time
 from autoxkit import ImageMatcher
 
 image_matcher = ImageMatcher()
@@ -26,5 +27,8 @@ target_image = image_matcher.get_screen_image(rect=rect, fpath=r"examples")
 # target_image = image_matcher.read_image(r"examples\screen_image.png")
 rect = (0, 0, 300, 300)
 source_image = image_matcher.get_screen_image(rect=rect)
+start_time = time.time()
 result = image_matcher.image_match(source_image, target_image)
+print(f"用时：{time.time() - start_time}")
 print(result)
+
