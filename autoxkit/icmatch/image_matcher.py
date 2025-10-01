@@ -133,6 +133,19 @@ class ImageMatcher:
             np.ndarray: 预处理后的图像
         """
 
+        def color_filter(image, target_colors) -> np.ndarray:
+            """
+            颜色过滤器
+            """
+            target_colors = np.array(target_colors).reshape(-1, 1, 1, 3)     # 转换为 numpy 数组
+            dists = np.linalg.norm(image - target_colors, axis=3)        # 计算颜色距离
+            mask = np.any(dists < threshold, axis=0)                    # 生成掩码
+            image = np.full_like(image, 255)                            # 创建白底图像
+            image[mask] = 0                                            # 黑色像素
+            return image
+
+        image = np.array(image, dtype=np.uint8)
+
         # 如果是十六进制字符串, 转换为 RGB 元组
         target_colors = []
         for color in colors:
@@ -140,29 +153,9 @@ class ImageMatcher:
                 target_colors.append(tuple(int(color.lstrip('#')[i:i+2], 16) for i in (0, 2, 4)))
             else:
                 target_colors.append(color)
-        target_colors = np.array(target_colors).reshape(-1, 1, 1, 3)
 
-        image = np.array(image, dtype=np.uint8)
-
-        # 计算所有颜色的距离矩阵
-        # 使用广播机制同时计算所有目标颜色的距离
-        dists = np.linalg.norm(image - target_colors, axis=3)
-
-        # 生成复合掩码（任一颜色满足阈值即标记）
-        mask = np.any(dists < threshold, axis=0)
-
-        # 创建结果图像（白底）
-        processed_image = np.full_like(image, 255)
-        # 将符合条件的像素设为黑色
-        processed_image[mask] = 0
-
-        # 转换为灰度图像
-        gray_image = np.dot(image[...,:3], [0.2989, 0.5870, 0.1140]).astype(np.uint8)
+        image = color_filter(image, target_colors)
         # 超分辨率放大: 双三次插值
-        enlarged = ndimage.zoom(gray_image, scale_factor, order=3)
-        # 重新二值化
-        enlarged_binary = np.where(enlarged > 128, 255, 0).astype(np.uint8)
-        # 转换为三通道
-        enlarged_rgb = np.stack([enlarged_binary, enlarged_binary, enlarged_binary], axis=2)
-
-        return enlarged_rgb
+        image = ndimage.zoom(image, (scale_factor, scale_factor, 1), order=3)
+        image = color_filter(image, (0, 0, 0))
+        return image
