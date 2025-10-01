@@ -17,20 +17,7 @@ class RectTuple(tuple):
             y1: 左上角y坐标
             x2: 右下角x坐标
             y2: 右下角y坐标
-
-        异常:
-            TypeError: 当参数不是int类型时抛出
-            ValueError: 当不满足大小关系时抛出
         """
-        # 检查类型
-        if not isinstance(x1, int):
-            raise TypeError(f"x1必须是int类型，而不是 {type(x1).__name__}")
-        if not isinstance(y1, int):
-            raise TypeError(f"y1必须是int类型，而不是 {type(y1).__name__}")
-        if not isinstance(x2, int):
-            raise TypeError(f"x2必须是int类型，而不是 {type(x2).__name__}")
-        if not isinstance(y2, int):
-            raise TypeError(f"y2必须是int类型，而不是 {type(y2).__name__}")
 
         # 检查大小关系
         if x2 <= x1:
@@ -94,6 +81,12 @@ class BitmapData(ctypes.Structure):
         ("Reserved", ctypes.c_uint),
     ]
 
+class CLSID(ctypes.Structure):
+    _fields_ = [("Data1", ctypes.c_uint32),
+                ("Data2", ctypes.c_uint16),
+                ("Data3", ctypes.c_uint16),
+                ("Data4", ctypes.c_ubyte * 8)]
+
 # 加载GDI+库
 gdiplus = ctypes.WinDLL("gdiplus.dll")
 
@@ -130,9 +123,68 @@ GdiplusShutdown = gdiplus.GdiplusShutdown
 GdiplusShutdown.argtypes = [ctypes.c_void_p]
 GdiplusShutdown.restype = None
 
+# 新增的保存图像相关函数
+GdipCreateBitmapFromScan0 = gdiplus.GdipCreateBitmapFromScan0
+GdipCreateBitmapFromScan0.argtypes = [ctypes.c_int, ctypes.c_int, ctypes.c_int, ctypes.c_int, ctypes.c_void_p, ctypes.POINTER(ctypes.c_void_p)]
+GdipCreateBitmapFromScan0.restype = ctypes.c_int
+
+GdipSaveImageToFile = gdiplus.GdipSaveImageToFile
+GdipSaveImageToFile.argtypes = [ctypes.c_void_p, ctypes.c_wchar_p, ctypes.POINTER(CLSID), ctypes.c_void_p]
+GdipSaveImageToFile.restype = ctypes.c_int
+
+# 编码器CLSID
+def get_encoder_clsid(format_name):
+    """获取指定格式的编码器CLSID"""
+    # 定义编码器相关函数
+    GdipGetImageEncodersSize = gdiplus.GdipGetImageEncodersSize
+    GdipGetImageEncodersSize.argtypes = [ctypes.POINTER(ctypes.c_uint), ctypes.POINTER(ctypes.c_uint)]
+    GdipGetImageEncodersSize.restype = ctypes.c_int
+
+    GdipGetImageEncoders = gdiplus.GdipGetImageEncoders
+    GdipGetImageEncoders.argtypes = [ctypes.c_uint, ctypes.c_uint, ctypes.c_void_p]
+    GdipGetImageEncoders.restype = ctypes.c_int
+
+    class ImageCodecInfo(ctypes.Structure):
+        _fields_ = [
+            ("Clsid", CLSID),
+            ("FormatID", CLSID),
+            ("CodecName", ctypes.c_wchar_p),
+            ("DllName", ctypes.c_wchar_p),
+            ("FormatDescription", ctypes.c_wchar_p),
+            ("FilenameExtension", ctypes.c_wchar_p),
+            ("MimeType", ctypes.c_wchar_p),
+            ("Flags", ctypes.c_uint32),
+            ("Version", ctypes.c_uint32),
+            ("SigCount", ctypes.c_uint32),
+            ("SigSize", ctypes.c_uint32),
+            ("SigPattern", ctypes.c_void_p),
+            ("SigMask", ctypes.c_void_p)
+        ]
+
+    num_encoders = ctypes.c_uint()
+    size = ctypes.c_uint()
+
+    # 获取编码器数量和所需缓冲区大小
+    if GdipGetImageEncodersSize(ctypes.byref(num_encoders), ctypes.byref(size)) != 0:
+        return None
+
+    # 分配缓冲区并获取编码器信息
+    encoder_info = (ImageCodecInfo * num_encoders.value)()
+    if GdipGetImageEncoders(num_encoders.value, size.value, ctypes.cast(encoder_info, ctypes.c_void_p)) != 0:
+        return None
+
+    # 查找指定格式的编码器
+    for i in range(num_encoders.value):
+        if encoder_info[i].MimeType and encoder_info[i].MimeType.lower() == format_name.lower():
+            return encoder_info[i].Clsid
+
+    return None
+
 # 像素格式常量
 PixelFormat24bppRGB = 0x21808
+PixelFormat32bppARGB = 0x26200A
 ImageLockModeRead = 1
+ImageLockModeWrite = 2
 
 def read_image(fpath: str) -> np.ndarray:
     # 初始化GDI+
@@ -155,7 +207,7 @@ def read_image(fpath: str) -> np.ndarray:
             height = ctypes.c_uint()
             GdipGetImageWidth(bitmap, ctypes.byref(width))
             GdipGetImageHeight(bitmap, ctypes.byref(height))
-            width, height = width.value, height.value
+            width, height = int(width.value), int(height.value)
 
             # 定义锁定区域(整个图像)
             rect = RECT(0, 0, width, height)
@@ -166,25 +218,45 @@ def read_image(fpath: str) -> np.ndarray:
                 bitmap,
                 ctypes.byref(rect),
                 ImageLockModeRead,
-                PixelFormat24bppRGB,
+                PixelFormat32bppARGB,
                 ctypes.byref(bitmap_data)
             )
             if status != 0:
                 raise RuntimeError(f"Failed to lock bits with status {status}")
 
             try:
-                # 获取像素数据
-                stride = bitmap_data.Stride
-                pixel_data = ctypes.cast(bitmap_data.Scan0, ctypes.POINTER(ctypes.c_ubyte))
-                # 创建numpy数组
-                img_array = np.ctypeslib.as_array(pixel_data, shape=(height, stride))
-                # 转换为标准RGB格式(高度, 宽度, 3)
-                img_array = img_array[:, :width * 3].reshape(height, width, 3)
-                # 复制数据以避免内存问题
-                img_array = np.copy(img_array)
+                scan0 = bitmap_data.Scan0
+                stride = int(bitmap_data.Stride)
+                if not scan0:
+                    raise OSError("BitmapData.Scan0 is NULL")
+                total_bytes = abs(stride) * height
+                buf_type = ctypes.c_ubyte * total_bytes
+                buf = buf_type.from_address(
+                    ctypes.addressof(
+                        ctypes.c_char.from_buffer(
+                            ctypes.string_at(
+                                scan0, total_bytes
+                                ))) if False else scan0)
+                addr = ctypes.cast(scan0, ctypes.c_void_p).value
+                if addr is None:
+                    raise OSError("Failed to obtain scan0 address")
+                buf = buf_type.from_address(addr)
+                arr = np.frombuffer(buf, dtype=np.uint8)
+                arr = arr.reshape(height, abs(stride))
+
+                row_bytes = width * 4
+                arr = arr[:, :row_bytes]
+                arr = arr.reshape((height, width, 4))
+                if bitmap_data.Stride < 0:
+                    arr = np.flipud(arr)
+
+                return arr.copy()
+
             finally:
                 # 解锁位图
                 GdipBitmapUnlockBits(bitmap, ctypes.byref(bitmap_data))
+                if status != 0:
+                    raise OSError(f"GdipBitmapUnlockBits failed with status {status}")
         finally:
             # 释放位图
             GdipDisposeImage(bitmap)
@@ -192,4 +264,86 @@ def read_image(fpath: str) -> np.ndarray:
         # 关闭GDI+
         GdiplusShutdown(token)
 
-    return np.array(img_array, dtype=np.float32)
+def save_image(image: np.ndarray, fname: str=r'examples\temp.png'):
+    """
+    保存图像到文件
+
+    参数:
+        image: numpy数组，形状为(H, W, 3)或(H, W, 4)，数据类型为uint8或float32/float64(会被转换为uint8)
+        fname: 保存的文件名，支持常见格式如BMP, JPEG, PNG, GIF等
+    """
+    if image.dtype != np.uint8:
+        # 将浮点图像转换为uint8
+        if image.max() <= 1.0:
+            image = (image * 255).astype(np.uint8)
+        else:
+            image = image.astype(np.uint8)
+
+    height, width = image.shape[:2]
+    channels = image.shape[2] if len(image.shape) == 3 else 1
+
+    # 确定像素格式
+    if channels == 3:
+        pixel_format = PixelFormat24bppRGB
+        stride = width * 3
+        # 确保stride是4的倍数
+        if stride % 4 != 0:
+            stride = (stride // 4 + 1) * 4
+    elif channels == 4:
+        pixel_format = PixelFormat32bppARGB
+        stride = width * 4
+    else:
+        raise ValueError("只支持3通道(RGB)或4通道(RGBA)图像")
+
+    # 初始化GDI+
+    token = ctypes.c_void_p()
+    startup_input = GdiplusStartupInput(1, None, False, False)
+    status = GdiplusStartup(ctypes.byref(token), ctypes.byref(startup_input), None)
+    if status != 0:
+        raise RuntimeError(f"GDI+ Startup failed with status {status}")
+
+    try:
+        # 创建位图
+        bitmap = ctypes.c_void_p()
+
+        # 准备图像数据
+        image_data = np.ascontiguousarray(image)
+
+        status = GdipCreateBitmapFromScan0(
+            width, height, stride, pixel_format,
+            image_data.ctypes.data, ctypes.byref(bitmap)
+        )
+        if status != 0:
+            raise RuntimeError(f"Failed to create bitmap with status {status}")
+
+        try:
+            # 根据文件扩展名确定编码器
+            ext = fname.lower().split('.')[-1]
+            mime_types = {
+                'bmp': 'image/bmp',
+                'jpg': 'image/jpeg',
+                'jpeg': 'image/jpeg',
+                'png': 'image/png',
+                'gif': 'image/gif',
+                'tiff': 'image/tiff',
+                'tif': 'image/tiff'
+            }
+
+            mime_type = mime_types.get(ext, 'image/png')  # 默认为PNG
+
+            # 获取编码器CLSID
+            encoder_clsid = get_encoder_clsid(mime_type)
+            if encoder_clsid is None:
+                raise RuntimeError(f"未找到 {mime_type} 格式的编码器")
+
+            # 保存图像
+            status = GdipSaveImageToFile(bitmap, fname, ctypes.byref(encoder_clsid), None)
+            if status != 0:
+                raise RuntimeError(f"Failed to save image with status {status}")
+
+        finally:
+            # 释放位图
+            GdipDisposeImage(bitmap)
+    finally:
+        # 关闭GDI+
+        GdiplusShutdown(token)

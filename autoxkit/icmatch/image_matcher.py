@@ -1,11 +1,12 @@
 import os
 import mss
 import numpy as np
+from scipy import ndimage
 from scipy.signal import fftconvolve
 from mss.tools import to_png
 from mss.screenshot import ScreenShot
 
-from .tools import read_image, RectTuple
+from .tools import RectTuple
 
 
 class ImageMatcher:
@@ -22,16 +23,10 @@ class ImageMatcher:
         """
         将图像转换为 numpy 数组
         """
-        img_array = np.array(image, dtype=np.float32)
+        img_array = np.array(image)
         if img_array.shape[2] != 3:
             img_array = img_array[:, :, :3]
         return img_array
-
-    def read_image(self, fpath: str) -> np.ndarray:
-        """
-        读取图像文件并转换为 numpy 数组
-        """
-        return read_image(fpath)
 
     def get_screen_image(
         self, rect: tuple[int, int, int, int],
@@ -76,6 +71,8 @@ class ImageMatcher:
         Returns:
             tuple[tuple, float]: 匹配结果元组，包含匹配位置和相似度。
         """
+        source_image = np.array(source_image, dtype=np.float32)
+        target_image = np.array(target_image, dtype=np.float32)
 
         return self._match_ncc(source_image, target_image, similarity)
 
@@ -121,4 +118,51 @@ class ImageMatcher:
         else:
             return False, round(float(max_sim), 3)
 
+    def preprocess_image(self, image: np.ndarray,
+                         colors: list[tuple[int, int, int]] | list[str],
+                         threshold: int = 150, scale_factor: int = 3
+                         ) -> np.ndarray:
+        """
+        简介:
+            预处理图像, 方便给 tesseract 等库做文字识别,
+            将指定颜色转换为黑色, 其他为白色, 然后做超分辨率放大。
+        Parameters:
+            image (np.ndarray): 待预处理图像
+            colors (list[tuple[int, int, int]] | list[str]): 支持 RGB 元组和十六进制字符串。
+        Returns:
+            np.ndarray: 预处理后的图像
+        """
 
+        # 如果是十六进制字符串, 转换为 RGB 元组
+        target_colors = []
+        for color in colors:
+            if isinstance(color, str):
+                target_colors.append(tuple(int(color.lstrip('#')[i:i+2], 16) for i in (0, 2, 4)))
+            else:
+                target_colors.append(color)
+        target_colors = np.array(target_colors).reshape(-1, 1, 1, 3)
+
+        image = np.array(image, dtype=np.uint8)
+
+        # 计算所有颜色的距离矩阵
+        # 使用广播机制同时计算所有目标颜色的距离
+        dists = np.linalg.norm(image - target_colors, axis=3)
+
+        # 生成复合掩码（任一颜色满足阈值即标记）
+        mask = np.any(dists < threshold, axis=0)
+
+        # 创建结果图像（白底）
+        processed_image = np.full_like(image, 255)
+        # 将符合条件的像素设为黑色
+        processed_image[mask] = 0
+
+        # 转换为灰度图像
+        gray_image = np.dot(image[...,:3], [0.2989, 0.5870, 0.1140]).astype(np.uint8)
+        # 超分辨率放大: 双三次插值
+        enlarged = ndimage.zoom(gray_image, scale_factor, order=3)
+        # 重新二值化
+        enlarged_binary = np.where(enlarged > 128, 255, 0).astype(np.uint8)
+        # 转换为三通道
+        enlarged_rgb = np.stack([enlarged_binary, enlarged_binary, enlarged_binary], axis=2)
+
+        return enlarged_rgb
