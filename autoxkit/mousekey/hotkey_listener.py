@@ -45,7 +45,7 @@ class HotkeyListener:
             return f"successful update of hotkey: {name}, keys: {self.hotkeys[name]['keys']}, func: {self.hotkeys[name]['func']}"
 
     def unregister_hotkey(self, name):
-        """根据名称删除快捷键"""
+        """根据名称注销快捷键"""
         with self.lock:
             if name in self.hotkeys:
                 del self.hotkeys[name]
