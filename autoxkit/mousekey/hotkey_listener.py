@@ -20,30 +20,37 @@ class HotkeyListener:
         self.hook_listener.add_handler("keyup", self._on_keyup)
         self.hook_listener.start()
 
+    def _key_in_hex_codes(self, key):
+        """判断按键是否存在于Hex_Key_Code中"""
+        if key in Hex_Key_Code:
+            return True
+        raise ValueError(f"key not found in Hex_Key_Code: {key}")
+
     def register_hotkey(self, name, keys, func):
         """注册快捷键"""
-        vk_codes = [Hex_Key_Code[k] for k in keys]
+        vk_codes = [Hex_Key_Code[k] for k in keys if self._key_in_hex_codes(k)]
         with self.lock:
             self.hotkeys[name] = {"keys": vk_codes, "func": func}
+        return f"successful registration of hotkey: {name}, keys: {keys}, func: {func}"
 
     def update_hotkey(self, name, keys=None, func=None):
         """根据名称修改快捷键或触发函数"""
         with self.lock:
             if name not in self.hotkeys:
-                return False
+                raise ValueError(f"name not found in hotkeys: {name}")
             if keys:
-                self.hotkeys[name]["keys"] = [Hex_Key_Code[k] for k in keys]
+                self.hotkeys[name]["keys"] = [Hex_Key_Code[k] for k in keys if self._key_in_hex_codes(k)]
             if func:
                 self.hotkeys[name]["func"] = func
-            return True
+            return f"successful update of hotkey: {name}, keys: {self.hotkeys[name]['keys']}, func: {self.hotkeys[name]['func']}"
 
     def unregister_hotkey(self, name):
         """根据名称删除快捷键"""
         with self.lock:
             if name in self.hotkeys:
                 del self.hotkeys[name]
-                return True
-            return False
+                return f"successful unregistration of hotkey: {name}, keys: {self.hotkeys[name]['keys']}, func: {self.hotkeys[name]['func']}"
+            raise ValueError(f"name not found in hotkeys: {name}")
 
     def _on_keydown(self, event):
         vk_code = event.key_code
