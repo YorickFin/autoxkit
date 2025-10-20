@@ -1,4 +1,5 @@
-# hook_impl.py
+
+# hook_listener.py
 import ctypes
 from ctypes import wintypes, Structure, POINTER, CFUNCTYPE, byref
 import time
@@ -145,70 +146,83 @@ class HookListener:
     # 内部键盘回调（bound method -> can be wrapped by CFUNCTYPE）
     def _keyboard_proc(self, nCode, wParam, lParam):
         if nCode >= 0:
-            kbd = ctypes.cast(lParam, POINTER(KBDLLHOOKSTRUCT)).contents
-            if wParam in (HHC["KeyDown"], HHC["SysKeyDown"]):
-                event = KeyEvent('KeyDown', kbd.vkCode)
-                for cb in list(self._on_keydown):
-                    try:
-                        cb(event)
-                    except Exception:
-                        # 回调异常不应终止钩子链
-                        pass
-            elif wParam in (HHC["KeyUp"], HHC["SysKeyUp"]):
-                event = KeyEvent('KeyUp', kbd.vkCode)
-                for cb in list(self._on_keyup):
-                    try:
-                        cb(event)
-                    except Exception:
-                        pass
-        # 注意：第一个参数应传入 hook handle 或 None（对 LL hook 可为 None）
+            try:
+                kbd = ctypes.cast(lParam, POINTER(KBDLLHOOKSTRUCT)).contents
+                if wParam in (HHC["KeyDown"], HHC["SysKeyDown"]):
+                    event = KeyEvent('KeyDown', kbd.vkCode)
+                    for cb in list(self._on_keydown):
+                        try:
+                            result = cb(event)
+                            if result is None:
+                                raise ValueError(f"键盘按下回调函数 {cb.__name__} 必须返回一个整数值 (0 或 1)，但返回了 None")
+                            elif result == 1:
+                                return 1  # 截断事件传播
+                        except ValueError as e:
+                            raise e
+                elif wParam in (HHC["KeyUp"], HHC["SysKeyUp"]):
+                    event = KeyEvent('KeyUp', kbd.vkCode)
+                    for cb in list(self._on_keyup):
+                        try:
+                            result = cb(event)
+                            if result is None:
+                                raise ValueError(f"键盘释放回调函数 {cb.__name__} 必须返回一个整数值 (0 或 1)，但返回了 None")
+                            elif result == 1:
+                                return 1  # 截断事件传播
+                        except Exception as e:
+                            raise e
+            except Exception as e:
+                raise e
+
         return user32.CallNextHookEx(self.keyboard_hook, nCode, wParam, lParam)
 
     # 内部鼠标回调
     def _mouse_proc(self, nCode, wParam, lParam):
         if nCode >= 0:
-            ms = ctypes.cast(lParam, POINTER(MSLLHOOKSTRUCT)).contents
-            x, y = ms.pt.x, ms.pt.y
             try:
-                if wParam == HHC["LeftDown"]:
-                    event = MouseEvent('MouseDown', 'Left', x, y)
+                ms = ctypes.cast(lParam, POINTER(MSLLHOOKSTRUCT)).contents
+                x, y = ms.pt.x, ms.pt.y
+
+                if wParam in (HHC["LeftDown"], HHC["RightDown"], HHC["MiddleDown"], HHC["XDown"]):
+                    button = self._get_mouse_button(wParam, ms.mouseData)
+                    event = MouseEvent("MouseDown", button, x, y)
                     for cb in list(self._on_mousedown):
-                        cb(event)
-                elif wParam == HHC["LeftUp"]:
-                    event = MouseEvent('MouseUp', 'Left', x, y)
+                        try:
+                            result = cb(event)
+                            if result is None:
+                                raise ValueError(f"鼠标按下回调函数 {cb.__name__} 必须返回一个整数值 (0 或 1)，但返回了 None")
+                            elif result == 1:
+                                return 1  # 截断事件传播
+                        except Exception as e:
+                            raise e
+
+                elif wParam in (HHC["LeftUp"], HHC["RightUp"], HHC["MiddleUp"], HHC["XUp"]):
+                    button = self._get_mouse_button(wParam, ms.mouseData)
+                    event = MouseEvent("MouseUp", button, x, y)
                     for cb in list(self._on_mouseup):
-                        cb(event)
-                elif wParam == HHC["RightDown"]:
-                    event = MouseEvent('MouseDown', 'Right', x, y)
-                    for cb in list(self._on_mousedown):
-                        cb(event)
-                elif wParam == HHC["RightUp"]:
-                    event = MouseEvent('MouseUp', 'Right', x, y)
-                    for cb in list(self._on_mouseup):
-                        cb(event)
-                elif wParam == HHC["MiddleDown"]:
-                    event = MouseEvent('MouseDown', 'Middle', x, y)
-                    for cb in list(self._on_mousedown):
-                        cb(event)
-                elif wParam == HHC["MiddleUp"]:
-                    event = MouseEvent('MouseUp', 'Middle', x, y)
-                    for cb in list(self._on_mouseup):
-                        cb(event)
-                elif wParam in (HHC["XDown"], HHC["XUp"]):
-                    high = (ms.mouseData >> 16) & 0xFFFF
-                    btn = 'XButton1' if high == HHC["XButton1"] else 'XButton2'
-                    if wParam == HHC["XDown"]:
-                        event = MouseEvent('MouseDown', btn, x, y)
-                        for cb in list(self._on_mousedown):
-                            cb(event)
-                    else:
-                        event = MouseEvent('MouseUp', btn, x, y)
-                        for cb in list(self._on_mouseup):
-                            cb(event)
-            except Exception:
-                # 忽略回调异常
-                pass
+                        try:
+                            result = cb(event)
+                            if result is None:
+                                raise ValueError(f"鼠标释放回调函数 {cb.__name__} 必须返回一个整数值 (0 或 1)，但返回了 None")
+                            elif result == 1:
+                                return 1  # 截断事件传播
+                        except Exception as e:
+                            raise e
+            except Exception as e:
+                raise e
+
         return user32.CallNextHookEx(self.mouse_hook, nCode, wParam, lParam)
+
+    # 辅助函数：获取鼠标按键名称
+    def _get_mouse_button(self, wParam, mouseData):
+        if wParam in (HHC["LeftDown"], HHC["LeftUp"]):
+            return 'Left'
+        elif wParam in (HHC["RightDown"], HHC["RightUp"]):
+            return 'Right'
+        elif wParam in (HHC["MiddleDown"], HHC["MiddleUp"]):
+            return 'Middle'
+        elif wParam in (HHC["XDown"], HHC["XUp"]):
+            high = (mouseData >> 16) & 0xFFFF
+            return 'XButton1' if high == HHC["XButton1"] else 'XButton2'
 
     # 启动监听（新线程 pump message loop）
     def start(self):

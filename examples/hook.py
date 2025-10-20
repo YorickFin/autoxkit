@@ -1,18 +1,29 @@
+"""
+return False 只监听事件，不阻止事件传播
+return True 监听事件，并阻止事件传播，可以理解为下一个窗口不会收到该事件
+"""
 
 import time
 from autoxkit.mousekey import HookListener, KeyEvent, MouseEvent
 
 def key_down(event: KeyEvent):
-    print('keydown', event.key_name)
+    print(event.action, event.key_code, event.key_name)
+    if event.key_name == 'A':
+        print("A键将被阻止传播，其他窗口将无法接收到该事件")
+        return True
+    return False
 
 def key_up(event: KeyEvent):
-    print('keyup', event.key_name)
+    print(event.action, event.key_code, event.key_name)
+    return False
 
 def mouse_down(event: MouseEvent):
-    print('mousedown', event.button, event.position)
+    print(event.action, event.button, event.position)
+    return False
 
 def mouse_up(event: MouseEvent):
-    print('mouseup', event.button, event.position)
+    print(event.action, event.button, event.position)
+    return False
 
 
 hook_listener = HookListener()

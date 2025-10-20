@@ -1,7 +1,7 @@
 # hotkey_listener.py
 import time
 import threading
-from .hook_listener import HookListener, Hex_Key_Code
+from .hook_listener import HookListener, KeyEvent, Hex_Key_Code
 
 
 class HotkeyListener:
@@ -52,7 +52,7 @@ class HotkeyListener:
                 return f"successful unregistration of hotkey: {name}, keys: {self.hotkeys[name]['keys']}, func: {self.hotkeys[name]['func']}"
             raise ValueError(f"name not found in hotkeys: {name}")
 
-    def _on_keydown(self, event):
+    def _on_keydown(self, event: KeyEvent):
         vk_code = event.key_code
         now = time.time()
 
@@ -74,11 +74,14 @@ class HotkeyListener:
                     hotkey["func"]()
                     self.current_keys = []
                     self.start_time = None
+                    return True
+        return False
 
-    def _on_keyup(self, event):
+    def _on_keyup(self, event: KeyEvent):
         # 只要有按键释放，就重置序列
         self.current_keys = []
         self.start_time = None
+        return False
 
     def stop(self):
         self.hook_listener.stop()
