@@ -11,7 +11,7 @@ def save_as_func():
     print("另存 - Ctrl+Shift+S 触发")
 
 def delete_func():
-    print("删除 - Shift+S 触发")
+    print("删除 - Shift+Delete 触发")
 
 hotkeylistener = HotkeyListener(timeout=2.0)
 hotkeylistener.register_hotkey("保存", ("Lctrl", "S"), save_func)
