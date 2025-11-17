@@ -118,7 +118,7 @@ class ImageMatcher:
         else:
             return False, round(float(max_sim), 3)
 
-    def preprocess_image(self, image: np.ndarray,
+    def proc_image(self, image: np.ndarray,
                          colors: list[tuple[int, int, int]] | list[str],
                          threshold: int = 150, scale_factor: int = 3
                          ) -> np.ndarray:

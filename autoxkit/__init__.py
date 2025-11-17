@@ -1,7 +1,7 @@
 from .mousekey import (
-    MouseControl,
+    Mouse,
 
-    KeyBoardControl,
+    KeyBoard,
 
     HookListener, KeyEvent, MouseEvent,
 
@@ -12,10 +12,10 @@ from .icmatch import ColorMatcher, ImageMatcher
 
 __all__ = [
     # 鼠标控制
-    "MouseControl",
+    "Mouse",
 
     # 键盘控制
-    "KeyBoardControl",
+    "KeyBoard",
 
     # 鼠标键盘钩子
     "HookListener", "KeyEvent", "MouseEvent",

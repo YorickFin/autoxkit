@@ -72,15 +72,18 @@ class HotkeyListener:
             for hotkey in self.hotkeys.values():
                 if self.current_keys == hotkey["keys"]:
                     hotkey["func"]()
-                    self.current_keys = []
-                    self.start_time = None
+                    self.start_time = now
                     return True
         return False
 
     def _on_keyup(self, event: KeyEvent):
-        # 只要有按键释放，就重置序列
-        self.current_keys = []
-        self.start_time = None
+        vk_code = event.key_code
+        # 只移除释放的键
+        if vk_code in self.current_keys:
+            self.current_keys.remove(vk_code)
+        # 如果所有键都释放了，重置时间
+        if not self.current_keys:
+            self.start_time = None
         return False
 
     def stop(self):

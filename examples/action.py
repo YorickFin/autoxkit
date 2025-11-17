@@ -1,27 +1,28 @@
 import time
-from autoxkit import MouseControl, KeyBoardControl
+from autoxkit import Mouse, KeyBoard
 
 def mouse_action():
-    mousecontrol = MouseControl()
-    mousecontrol.mouse_move(500, 500)
-    mousecontrol.left_down()
+    mouse = Mouse()
+    mouse.mouse_move(500, 500)
+    mouse.left_down()
     time.sleep(0.04)
-    mousecontrol.left_up()
+    mouse.left_up()
 
     time.sleep(1)
 
-    mousecontrol.mouse_move(600, 600)
-    mousecontrol.left_click()
+    mouse.mouse_move(600, 600)
+    mouse.left_click()
 
 def keyboard_action():
-    keyboardcontrol = KeyBoardControl()
-    keyboardcontrol.key_down('A')
-    time.sleep(0.04)
-    keyboardcontrol.key_up('A')
+    time.sleep(3)
+    keyboard = KeyBoard()
+    keyboard.key_down('A')
+    time.sleep(0.01)
+    keyboard.key_up('A')
 
-    keyboardcontrol.key_click('B')
+    keyboard.key_click('B')
 
 
 if __name__ == '__main__':
-    mouse_action()
+    # mouse_action()
     keyboard_action()

@@ -23,7 +23,7 @@ class INPUT(ctypes.Structure):
         ("_input", _INPUT)
     ]
 
-class MouseControl:
+class Mouse:
 
     def __init__(self):
         """初始化鼠标控制器"""
