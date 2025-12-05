@@ -150,25 +150,21 @@ class HookListener:
                 kbd = ctypes.cast(lParam, POINTER(KBDLLHOOKSTRUCT)).contents
                 if wParam in (HHC["KeyDown"], HHC["SysKeyDown"]):
                     event = KeyEvent('KeyDown', kbd.vkCode)
-                    for cb in list(self._on_keydown):
+                    for cb in self._on_keydown:
                         try:
                             result = cb(event)
-                            if result is None:
-                                raise ValueError(f"键盘按下回调函数 {cb.__name__} 必须返回一个整数值 (0 或 1)，但返回了 None")
-                            elif result == 1:
+                            if result is True:
                                 return 1  # 截断事件传播
                         except ValueError as e:
                             raise e
                 elif wParam in (HHC["KeyUp"], HHC["SysKeyUp"]):
                     event = KeyEvent('KeyUp', kbd.vkCode)
-                    for cb in list(self._on_keyup):
+                    for cb in self._on_keyup:
                         try:
                             result = cb(event)
-                            if result is None:
-                                raise ValueError(f"键盘释放回调函数 {cb.__name__} 必须返回一个整数值 (0 或 1)，但返回了 None")
-                            elif result == 1:
+                            if result is True:
                                 return 1  # 截断事件传播
-                        except Exception as e:
+                        except ValueError as e:
                             raise e
             except Exception as e:
                 raise e
@@ -185,12 +181,10 @@ class HookListener:
                 if wParam in (HHC["LeftDown"], HHC["RightDown"], HHC["MiddleDown"], HHC["XDown"]):
                     button = self._get_mouse_button(wParam, ms.mouseData)
                     event = MouseEvent("MouseDown", button, x, y)
-                    for cb in list(self._on_mousedown):
+                    for cb in self._on_mousedown:
                         try:
                             result = cb(event)
-                            if result is None:
-                                raise ValueError(f"鼠标按下回调函数 {cb.__name__} 必须返回一个整数值 (0 或 1)，但返回了 None")
-                            elif result == 1:
+                            if result is True:
                                 return 1  # 截断事件传播
                         except Exception as e:
                             raise e
@@ -198,12 +192,10 @@ class HookListener:
                 elif wParam in (HHC["LeftUp"], HHC["RightUp"], HHC["MiddleUp"], HHC["XUp"]):
                     button = self._get_mouse_button(wParam, ms.mouseData)
                     event = MouseEvent("MouseUp", button, x, y)
-                    for cb in list(self._on_mouseup):
+                    for cb in self._on_mouseup:
                         try:
                             result = cb(event)
-                            if result is None:
-                                raise ValueError(f"鼠标释放回调函数 {cb.__name__} 必须返回一个整数值 (0 或 1)，但返回了 None")
-                            elif result == 1:
+                            if result is True:
                                 return 1  # 截断事件传播
                         except Exception as e:
                             raise e

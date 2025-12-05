@@ -1,5 +1,6 @@
 """
-return False 只监听事件，不阻止事件传播
+return Any or not return 只监听事件，不阻止事件传播
+
 return True 监听事件，并阻止事件传播，可以理解为下一个窗口不会收到该事件
 """
 
