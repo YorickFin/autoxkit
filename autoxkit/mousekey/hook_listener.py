@@ -2,7 +2,6 @@
 # hook_listener.py
 import ctypes
 from ctypes import wintypes, Structure, POINTER, CFUNCTYPE, byref
-import time
 import threading
 from .constants import Hex_Key_Code, Hex_Hook_Code
 
@@ -258,11 +257,13 @@ class HookListener:
         msg = wintypes.MSG()
         while self.running:
             try:
-                if user32.PeekMessageW(byref(msg), 0, 0, 0, HHC["PM_REMOVE"]):
+                # 使用 GetMessageW 替代 PeekMessageW + sleep，避免 CPU 占用和事件延迟
+                if user32.GetMessageW(byref(msg), 0, 0, 0):
                     user32.TranslateMessage(byref(msg))
                     user32.DispatchMessageW(byref(msg))
                 else:
-                    time.sleep(0.01)
+                    # GetMessageW 返回 0 表示收到 WM_QUIT 消息
+                    break
             except Exception:
                 # 出现异常直接跳出循环，保证能清理钩子
                 break

@@ -31,7 +31,7 @@ Hex_Mouse_Code = {
     "XDown": 0x0080, "XUp": 0x0100, "XButton1": 0x0001, "XButton2": 0x0002,
 }
 
-# 钩子16进制码表
+# Hook16进制码表
 Hex_Hook_Code = {
     "Key_LL": 0x000D,
     "KeyDown": 0x0100, "KeyUp": 0x0101, "SysKeyDown": 0x0104, "SysKeyUp": 0x0105,
