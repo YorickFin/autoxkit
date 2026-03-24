@@ -79,8 +79,7 @@ user32.DispatchMessageW.restype = ctypes.c_long
 # ---------- HookListener 类 ----------
 class HookListener:
     """
-    每个实例可以独立运行、独立添加多个回调（keydown/keyup/mousedown/mouseup）。
-    使用示例见文件末尾。
+    每个实例可以独立运行、独立添加多个回调（keydown/keyup/mousedown/mouseup）
     """
     def __init__(self):
         # 回调列表（支持多个回调）
