@@ -1,4 +1,26 @@
-from .color_matcher import ColorMatcher
-from .image_matcher import ImageMatcher
+import importlib
+import sys
+from types import ModuleType
 
 __all__ = ["ColorMatcher", "ImageMatcher"]
+
+
+class _LazyModule(ModuleType):
+    """延迟导入模块，实现按需加载"""
+
+    _MODULE_MAPPING = {
+        "ColorMatcher": (".color_matcher", "ColorMatcher"),
+        "ImageMatcher": (".image_matcher", "ImageMatcher"),
+    }
+
+    def __getattr__(self, name: str):
+        if name in self._MODULE_MAPPING:
+            module_path, attr_name = self._MODULE_MAPPING[name]
+            module = importlib.import_module(module_path, package=__name__)
+            return getattr(module, attr_name)
+        return super().__getattribute__(name)
+
+
+_lazy_module = _LazyModule(__name__)
+_lazy_module.__dict__.update(sys.modules[__name__].__dict__)
+sys.modules[__name__] = _lazy_module

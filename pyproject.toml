@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "autoxkit"
-version = "0.4.3"
+version = "0.5.0"
 description = "Python library for automating Windows"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -17,6 +17,7 @@ authors = [
 dependencies = [
     "mss>=7.0.1",
     "numpy>=1.19.5",
+    "pillow>=12.1.1",
     "scipy>=1.5.4",
 ]
 classifiers = [
