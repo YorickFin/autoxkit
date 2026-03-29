@@ -3,7 +3,7 @@
 import ctypes
 from ctypes import wintypes, Structure, POINTER, CFUNCTYPE, byref
 import threading
-from .constants import Hex_Key_Code, Hex_Hook_Code
+from ..constants import Hex_Key_Code, Hex_Hook_Code
 
 HKC = Hex_Key_Code
 HHC = Hex_Hook_Code

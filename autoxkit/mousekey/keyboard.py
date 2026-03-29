@@ -1,6 +1,6 @@
 import ctypes
 import time
-from .constants import Hex_Key_Code as HKC
+from ..constants import Hex_Key_Code as HKC
 
 user32 = ctypes.windll.user32
 

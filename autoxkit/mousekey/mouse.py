@@ -1,6 +1,6 @@
 import ctypes
 import time
-from .constants import Hex_Mouse_Code as HMC
+from ..constants import Hex_Mouse_Code as HMC
 
 # 定义结构体
 class MOUSEINPUT(ctypes.Structure):

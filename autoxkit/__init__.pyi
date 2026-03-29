@@ -10,6 +10,11 @@ from autoxkit.icmatch import (
     ColorMatcher,
     ImageMatcher
 )
+from autoxkit.window import (
+    Window
+)
+
+
 
 __all__ = [
     "Mouse",
@@ -20,4 +25,5 @@ __all__ = [
     "HotkeyListener",
     "ColorMatcher",
     "ImageMatcher",
+    "Window"
 ]

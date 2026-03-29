@@ -20,6 +20,9 @@ __all__ = [
 
     # 图像匹配
     "ImageMatcher",
+
+    # 窗口控制
+    "Window",
 ]
 
 
@@ -37,12 +40,14 @@ class _LazyModule(ModuleType):
         # icmatch 模块
         "ColorMatcher": ("autoxkit.icmatch", "ColorMatcher"),
         "ImageMatcher": ("autoxkit.icmatch", "ImageMatcher"),
+        # window 模块
+        "Window": ("autoxkit.window", "Window"),
     }
 
     def __getattr__(self, name: str):
         if name in self._MODULE_MAPPING:
             module_path, attr_name = self._MODULE_MAPPING[name]
-            module = importlib.import_module(module_path)
+            module = importlib.import_module(module_path, package=__name__)
             return getattr(module, attr_name)
         return super().__getattribute__(name)
 
