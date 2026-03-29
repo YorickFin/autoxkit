@@ -1,11 +1,11 @@
-from .mouse import Mouse as Mouse
-from .keyboard import KeyBoard as KeyBoard
+from .mouse import Mouse
+from .keyboard import KeyBoard
 from .hook_listener import (
-    HookListener as HookListener,
-    KeyEvent as KeyEvent,
-    MouseEvent as MouseEvent,
+    HookListener,
+    KeyEvent,
+    MouseEvent,
 )
-from .hotkey_listener import HotkeyListener as HotkeyListener
+from .hotkey_listener import HotkeyListener
 
 __all__ = [
     "Mouse",

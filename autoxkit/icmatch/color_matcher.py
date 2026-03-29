@@ -56,4 +56,4 @@ class ColorMatcher:
         # 计算欧几里得距离
         distance = math.sqrt(sum((a - b) ** 2 for a, b in zip(source_color, target_color)))
         score = 1 - (distance / self.max_distance)
-        return score >= similarity, score
+        return score >= similarity, round(score, 3)

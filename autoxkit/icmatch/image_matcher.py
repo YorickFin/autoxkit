@@ -1,10 +1,9 @@
-import os
 import mss
 import numpy as np
 from scipy import ndimage
 from scipy.signal import fftconvolve
-from mss.tools import to_png
-from mss.screenshot import ScreenShot
+from PIL import Image
+from pathlib import Path
 
 from .tools import RectTuple
 
@@ -19,45 +18,60 @@ class ImageMatcher:
         """
         return np.mean(image, axis=2).astype(np.float32)
 
-    def image_to_numpy(self, image) -> np.ndarray:
+    def _image_to_numpy(self, image, from_mss: bool = False) -> np.ndarray:
         """
         将图像转换为 numpy 数组
+        Parameters:
+            image: 图像对象
+            from_mss: 是否来自 MSS 截图
         """
         img_array = np.array(image)
+        if from_mss and img_array.shape[2] == 4:
+            # MSS 返回的是 BGRA 格式，需要转换为 RGBA
+            img_array = img_array[:, :, [2, 1, 0, 3]]
+
+        # 确保是 RGB 三通道格式
         if img_array.shape[2] != 3:
             img_array = img_array[:, :, :3]
+
         return img_array
 
-    def get_screen_image(
-        self, rect: tuple[int, int, int, int],
-        fpath: str=None, is_return_image_data: bool = False
-        ) -> np.ndarray | ScreenShot:
+    def read_image(self, image_path: str) -> np.ndarray:
         """
-            获取显示器 rect 区域的图像
+        读取图像
+        """
+        image_path = Path(image_path)
+        if not image_path.exists():
+            raise FileNotFoundError(f"文件不存在: {image_path}")
+        return self._image_to_numpy(Image.open(image_path))
+
+    def save_image(self, image: np.ndarray, image_path: str) -> None:
+        """
+        保存图像
+        """
+        image_path = Path(image_path).absolute()
+        if not image_path.parent.is_dir():
+            raise FileNotFoundError(f"目录不存在: {image_path.parent}")
+        Image.fromarray(image).save(image_path)
+
+    def screenshot(self, rect: tuple[int, int, int, int], image_path: str=None) -> np.ndarray:
+        """
+        截图: 获取显示器 rect 区域的图像
         Parameters:
             rect (tuple): 矩形区域元组，应包含 (x1, y1, x2, y2)。
-            fpath (str, optional): 截图保存路径，不包含文件名，默认文件名为 screen_image.png。
+            image_path (str, optional): 截图保存路径，包含自定义文件名。
         Returns:
-            np.ndarray | ScreenShot: 截图对象或 numpy 数组，根据 is_return_image_data 确定返回类型。
-            如果 fpath 不为 None，则保存截图到目录。
+            np.ndarray: 截图图像的 numpy 数组表示。
         """
         rect = RectTuple(*rect)
-
         screen_image = self.sct.grab(rect)
+        # 转换为 numpy 数组，MSS 返回 BGRA 格式需要转换
+        screen_image = self._image_to_numpy(screen_image, from_mss=True)
 
-        # 验证路径
-        if fpath is not None:
-            if not os.path.exists(fpath):
-                raise ValueError(f"路径 {fpath} 不存在")
-            if not os.path.isdir(fpath):
-                raise ValueError(f"路径 {fpath} 不是目录")
-            to_png(screen_image.rgb, screen_image.size, output=os.path.join(fpath, "screen_image.png"))
-            print("截图已保存： " + os.path.join(fpath, "screen_image.png"))
+        if image_path is not None:
+            self.save_image(screen_image, image_path)
 
-        if is_return_image_data:
-            return screen_image
-        else:
-            return self.image_to_numpy(screen_image)
+        return screen_image
 
     def image_match(self, source_image: np.ndarray, target_image: np.ndarray,
                     similarity: float = 0.8
@@ -113,10 +127,15 @@ class ImageMatcher:
         # 找到最佳匹配位置
         max_sim = np.max(ncc)
         if max_sim >= similarity:
+            # 左上角坐标
             y, x = np.unravel_index(np.argmax(ncc), ncc.shape)
+            w, h = target_image.shape[:2]
+            # 中心坐标
+            x = x + w // 2
+            y = y + h // 2
             return (int(x), int(y)), round(float(max_sim), 3)
         else:
-            return False, round(float(max_sim), 3)
+            return (False, False), round(float(max_sim), 3)
 
     def proc_image(self, image: np.ndarray,
                          colors: list[tuple[int, int, int]] | list[str],

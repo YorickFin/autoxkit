@@ -1,14 +1,14 @@
 from autoxkit.mousekey import (
-    Mouse as Mouse,
-    KeyBoard as KeyBoard,
-    HookListener as HookListener,
-    KeyEvent as KeyEvent,
-    MouseEvent as MouseEvent,
-    HotkeyListener as HotkeyListener,
+    Mouse,
+    KeyBoard,
+    HookListener,
+    KeyEvent,
+    MouseEvent,
+    HotkeyListener
 )
 from autoxkit.icmatch import (
-    ColorMatcher as ColorMatcher,
-    ImageMatcher as ImageMatcher,
+    ColorMatcher,
+    ImageMatcher
 )
 
 __all__ = [
