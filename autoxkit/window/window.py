@@ -19,6 +19,12 @@ class Window(WindowAction):
             if self.bind_window():
                 super().__init__(self.hand)
 
+    def activate_window(self):
+        """激活窗口"""
+        if self.hand:
+            user32.SetForegroundWindow(self.hand)
+            user32.SetFocus(self.hand)
+
     def bind_window(self):
         """
         通过 title_name、class_name 或 hand 查找窗口。
