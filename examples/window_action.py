@@ -1,4 +1,4 @@
-import time
+import time  # noqa: F401
 from autoxkit.window import Window
 
 def window_action():

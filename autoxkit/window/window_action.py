@@ -304,3 +304,5 @@ class WindowAction:
         elif self.mouse_point:
             lparam = MAKELPARAM(self.mouse_point[0], self.mouse_point[1])
             return lparam
+        raise ValueError("鼠标位置未设置")
+

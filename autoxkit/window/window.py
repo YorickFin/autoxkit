@@ -2,6 +2,7 @@
 import ctypes
 from ctypes import wintypes
 from .window_action import WindowAction
+from .window_match import WindowMatch
 
 user32 = ctypes.windll.user32
 
@@ -9,42 +10,43 @@ user32 = ctypes.windll.user32
 EnumWindowsProc = ctypes.WINFUNCTYPE(wintypes.BOOL, wintypes.HWND, wintypes.LPARAM)
 
 
-class Window(WindowAction):
+class Window(WindowAction, WindowMatch):
 
-    def __init__(self, title_name: str='', class_name: str='', hand: int = None):
+    def __init__(self, title_name: str='', class_name: str='', hwnd: int = None):
         self.title_name = title_name if title_name else None
         self.class_name = class_name if class_name else None
-        self.hand = hand
-        if hand or title_name or class_name:
+        self.hwnd = hwnd
+        if hwnd or title_name or class_name:
             if self.bind_window():
-                super().__init__(self.hand)
+                WindowAction.__init__(self, self.hwnd)
+                WindowMatch.__init__(self, self.hwnd)
 
     def activate_window(self):
         """激活窗口"""
-        if self.hand:
-            user32.SetForegroundWindow(self.hand)
-            user32.SetFocus(self.hand)
+        if self.hwnd:
+            user32.SetForegroundWindow(self.hwnd)
+            user32.SetFocus(self.hwnd)
 
     def bind_window(self):
         """
-        通过 title_name、class_name 或 hand 查找窗口。
+        通过 title_name、class_name 或 hwnd 查找窗口。
         支持查找子窗口（二级、三级等），无需指定父窗口。
-        优先级: hand > title_name > class_name
+        优先级: hwnd > title_name > class_name
         找到窗口后补全所有属性
         """
-        if self.hand is not None:
+        if self.hwnd is not None:
             # 验证句柄是否有效
-            if user32.IsWindow(self.hand):
-                self._fill_window_info(self.hand)
-                return self.hand
+            if user32.IsWindow(self.hwnd):
+                self._fill_window_info(self.hwnd)
+                return self.hwnd
             else:
-                raise ValueError(f"无效的窗口句柄: {self.hand}")
+                raise ValueError(f"无效的窗口句柄: {self.hwnd}")
 
         # 递归查找所有窗口
         if self.title_name or self.class_name:
             hwnd = self._find_window()
             if hwnd:
-                self.hand = hwnd
+                self.hwnd = hwnd
                 self._fill_window_info(hwnd)
                 return hwnd
 
@@ -127,6 +129,6 @@ class Window(WindowAction):
             self.class_name = self._get_window_class(hwnd)
 
     def __str__(self) -> str:
-        return f"Window(title_name={self.title_name}, class_name={self.class_name}, hand={self.hand})"
+        return f"Window(title_name={self.title_name}, class_name={self.class_name}, hwnd={self.hwnd})"
 
 
