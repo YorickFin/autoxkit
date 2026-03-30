@@ -48,7 +48,7 @@ MAKELPARAM = lambda x, y: (y << 16) | (x & 0xFFFF)  # noqa: E731
 
 class WindowAction:
     """
-    窗口操作类
+        窗口操作类
     Args:
         hwnd (int): 窗口句柄
         mouse_point (tuple): 记录鼠标当前位置
@@ -116,8 +116,8 @@ class WindowAction:
             time.sleep(0.02)
 
     def send_mouse_move(self, x: int=None, y: int=None, duration: float = 0.2, steps: int = 10, use_post: bool = False):
-        """发送鼠标移动消息
-
+        """
+            发送鼠标移动消息
         Args:
             x: 目标X坐标
             y: 目标Y坐标
@@ -264,8 +264,8 @@ class WindowAction:
         self.send_middle_up(x, y, use_post)
 
     def send_mouse_wheel(self, delta: int, use_post: bool = False):
-        """发送鼠标滚轮消息（正值向上，负值向下）
-
+        """
+            发送鼠标滚轮消息（正值向上，负值向下）
         Args:
             delta: 滚动值（正值向上，负值向下）
             use_post: 是否使用PostMessage

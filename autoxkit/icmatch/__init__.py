@@ -2,15 +2,15 @@ import importlib
 import sys
 from types import ModuleType
 
-__all__ = ["ColorMatch", "ImageMatch"]
+__all__ = ["MatchColor", "MatchImage"]
 
 
 class _LazyModule(ModuleType):
     """延迟导入模块，实现按需加载"""
 
     _MODULE_MAPPING = {
-        "ColorMatch": (".color_match", "ColorMatch"),
-        "ImageMatch": (".image_match", "ImageMatch"),
+        "MatchColor": (".match_color", "MatchColor"),
+        "MatchImage": (".match_image", "MatchImage"),
     }
 
     def __getattr__(self, name: str):

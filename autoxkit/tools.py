@@ -9,9 +9,8 @@ class RectTuple(tuple):
     """
     def __new__(cls, x1: int, y1: int, x2: int, y2: int):
         """
-        创建新的RectTuple实例
-
-        参数:
+            创建新的RectTuple实例
+        Args:
             x1: 左上角x坐标
             y1: 左上角y坐标
             x2: 右下角x坐标

@@ -8,7 +8,7 @@ from pathlib import Path
 from ..tools import RectTuple
 
 
-class ImageMatch:
+class MatchImage:
     """
     图像匹配类
     """
@@ -23,7 +23,7 @@ class ImageMatch:
 
     def _image_to_numpy(self, image, to_rgb: bool = False) -> np.ndarray:
         """
-        将图像转换为 numpy 数组
+            将图像转换为 numpy 数组
         Args:
             image: 图像对象
             to_rgb: 是否转换为 RGB 格式
@@ -57,12 +57,13 @@ class ImageMatch:
             raise FileNotFoundError(f"目录不存在: {image_path.parent}")
         Image.fromarray(image).save(image_path)
 
-    def screenshot(self, rect: tuple[int, int, int, int], image_path: str=None) -> np.ndarray:
+    def screenshot(self, rect: tuple[int, int, int, int], save_path: str=None) -> np.ndarray:
         """
-        截图: 获取显示器 rect 区域的图像
+            截图:
+                获取显示器 rect 区域的图像
         Args:
             rect (tuple): 矩形区域元组，应包含 (x1, y1, x2, y2)。
-            image_path (str, optional): 截图保存路径，包含自定义文件名。
+            save_path (str, optional): 截图保存路径，包含自定义文件名。
         Returns:
             np.ndarray: 截图图像的 numpy 数组表示。
         """
@@ -71,23 +72,23 @@ class ImageMatch:
         # 转换为 numpy 数组，MSS 返回 BGRA 格式需要转换
         screen_image = self._image_to_numpy(screen_image, to_rgb=True)
 
-        if image_path is not None:
-            self.save_image(screen_image, image_path)
+        if save_path is not None:
+            self.save_image(screen_image, save_path)
 
         return screen_image
 
-    def match(self, target_image: np.ndarray=None, rect: tuple[int, int, int, int] = None,
-                    similarity: float = 0.8) -> tuple[tuple, float]:
+    def match(self, target_image: np.ndarray=None, rect: tuple[int, int, int, int]=None,
+                    similarity: float=0.8) -> tuple[tuple, float]:
         """
-        匹配图像
+            匹配图像
         Args:
             target_image (np.ndarray): 目标图像
-            rect (tuple, optional): 矩形区域元组，应包含 (x1, y1, x2, y2)
-            similarity (float, optional): 相似度阈值，默认 0.8。
+            rect (tuple): 矩形区域元组，应包含 (x1, y1, x2, y2)
+            similarity (float): 相似度阈值，默认 0.8。
         Returns:
-            tuple[tuple, float]: 匹配结果元组，包含匹配位置和相似度。
+            tuple[tuple[int, int], float]: 匹配结果元组，包含匹配位置和相似度。
         """
-        # 处理输入参数
+        # 检查参数
         if target_image is None or rect is None:
             raise ValueError("必须提供 target_image 和 rect 参数")
 
@@ -192,10 +193,8 @@ class ImageMatch:
         edges = edges / (np.max(edges) + 1e-8)
         return edges
 
-    def proc_image(self, image: np.ndarray,
-                         colors: list[tuple[int, int, int]] | list[str],
-                         threshold: int = 150, scale_factor: int = 3
-                         ) -> np.ndarray:
+    def proc_image(self, image: np.ndarray, colors: list[tuple[int, int, int]] | list[str],
+                   threshold: int = 150, is_magnify: bool = False) -> np.ndarray:
         """
         简介:
             预处理图像, 方便给 tesseract 等库做文字识别,
@@ -203,6 +202,8 @@ class ImageMatch:
         Args:
             image (np.ndarray): 待预处理图像
             colors (list[tuple[int, int, int]] | list[str]): 支持 RGB 元组和十六进制字符串。
+            threshold (int, optional): 颜色距离阈值, 用于颜色毛边判定。默认值为 150。
+            is_magnify (bool, optional): 是否做超分辨率放大。默认值为 False。
         Returns:
             np.ndarray: 预处理后的图像
         """
@@ -230,7 +231,8 @@ class ImageMatch:
 
         image = color_filter(image, target_colors)
         # 超分辨率放大: 双三次插值
-        image = ndimage.zoom(image, (scale_factor, scale_factor, 1), order=3)
+        if is_magnify:
+            image = ndimage.zoom(image, (3, 3, 1), order=3)
         image = color_filter(image, (0, 0, 0))
         return image
 

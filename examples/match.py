@@ -1,75 +1,80 @@
-from autoxkit import ColorMatch
-from autoxkit import ImageMatch
+from autoxkit import MatchColor
+from autoxkit import MatchImage
 from autoxkit import Mouse
 
-def color_match_example():
-    color_match = ColorMatch()
+def match_color_example():
+    match_color = MatchColor()
 
     # 坐标颜色匹配
-    print(color_match.match(
+    print(match_color.match(
         source_color=(100, 100),
         target_color=(200, 200),
         similarity=0.8
     ))
 
     # RGB颜色匹配
-    print(color_match.match(
+    print(match_color.match(
         source_color=(31, 36, 60),
         target_color=(31, 36, 48),
         similarity=0.8
     ))
 
     # 十六进制颜色匹配
-    print(color_match.match(
+    print(match_color.match(
         source_color='#FF0000',
         target_color='#1F2430',
         similarity=0.8
     ))
 
     # 混合类型颜色匹配
-    print(color_match.match(
+    print(match_color.match(
         source_color=(100, 100),
         target_color='#1F2430',
         similarity=0.8
     ))
 
-    print(color_match.match(
+    print(match_color.match(
         source_color=(31, 36, 48),
         target_color='#1F2430',
         similarity=0.8
     ))
 
     # 获取坐标颜色
-    print(color_match.get_pixel_color(x=1906, y=398))     # 默认返回RGB元组
-    print(color_match.get_pixel_color(x=1906, y=398, is_return_hex=True))     # 返回十六进制字符串
+    print(match_color.get_pixel_color(x=1700, y=800))     # 默认返回RGB元组
+    print(match_color.get_pixel_color(x=1700, y=800, is_return_hex=True))     # 返回十六进制字符串
 
     # 十六进制颜色转RGB三元组
-    print(color_match._hex_to_rgb('#FF0000'))
+    print(match_color._hex_to_rgb('#FF0000'))
 
-def image_match_example():
-    image_match = ImageMatch()
+def match_image_example():
+    match_image = MatchImage()
 
     # 读取图像，返回numpy数组
-    # image = image_match.read_image(r"img\1.png")
+    # image = match_image.read_image(r"img\1.png")
 
     # 保存图像
-    # image_match.save_image(image, r"img\2.png")
+    # match_image.save_image(image, r"img\2.png")
 
     # 截图
     # rect = (100, 100, 500, 500)
-    # image = image_match.screenshot(rect=rect) # 返回numpy数组
-    # image = image_match.screenshot(rect=rect, image_path=r"img\2.png") # 保存截图到路径, 返回numpy数组
+    # image = match_image.screenshot(rect=rect) # 返回numpy数组
+    # image = match_image.screenshot(rect=rect, save_path=r"img\2.png") # 保存截图到路径, 返回numpy数组
 
     # 图像匹配
-    target_image = image_match.read_image(r"img\1.png")
+    target_image = match_image.read_image(r"img\1.png")
     rect=(0, 0, 100, 100)
-    (x, y), sim = image_match.match(target_image=target_image, rect=rect, similarity=0.8)
+    (x, y), sim = match_image.match(target_image=target_image, rect=rect, similarity=0.8)
     if x is not False and y is not False:
         mouse = Mouse()
         mouse.mouse_move(x, y)
     print(x, y, sim)
 
+    # 图像预处理
+    # image = match_image.read_image(r"examples\text.png")
+    # image = match_image.proc_image(image, colors=["#1A1A1A", "#AC1515"], threshold=200)
+    # match_image.save_image(image, r"examples\text_proc.png")
+
 if __name__ == '__main__':
-    # color_match_example()
-    # image_match_example()
+    # match_color_example()
+    match_image_example()
     pass

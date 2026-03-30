@@ -1,12 +1,13 @@
-import time  # noqa: F401
+import time
 from autoxkit.window import Window
 
 def window_action():
     """键鼠操作"""
     # 绑定窗口
     window = Window(title_name='MuMuNxDevice', class_name=None, hand=None)
-    # 窗口为后台, 需要先激活窗口
+    # 前台被覆盖窗口可以正常操作，不需要激活，最小化到任务栏的窗口需要先激活
     window.activate_window()
+    time.sleep(1)
 
     # 详细按键名自行查看autoxkit.constants.py文件
     # 按键 按下和释放

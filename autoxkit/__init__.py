@@ -16,10 +16,10 @@ __all__ = [
     "HotkeyListener",
 
     # 颜色匹配
-    "ColorMatch",
+    "MatchColor",
 
     # 图像匹配
-    "ImageMatch",
+    "MatchImage",
 
     # 窗口控制
     "Window",
@@ -38,8 +38,8 @@ class _LazyModule(ModuleType):
         "MouseEvent": ("autoxkit.mousekey", "MouseEvent"),
         "HotkeyListener": ("autoxkit.mousekey", "HotkeyListener"),
         # icmatch 模块
-        "ColorMatch": ("autoxkit.icmatch", "ColorMatch"),
-        "ImageMatch": ("autoxkit.icmatch", "ImageMatch"),
+        "MatchColor": ("autoxkit.icmatch", "MatchColor"),
+        "MatchImage": ("autoxkit.icmatch", "MatchImage"),
         # window 模块
         "Window": ("autoxkit.window", "Window"),
     }

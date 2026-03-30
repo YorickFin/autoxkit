@@ -23,10 +23,16 @@ class Window(WindowAction, WindowMatch):
                 WindowMatch.__init__(self, self.hwnd)
 
     def activate_window(self):
-        """激活窗口"""
+        """激活窗口, 并将其强制前台显示"""
         if self.hwnd:
-            user32.SetForegroundWindow(self.hwnd)
-            user32.SetFocus(self.hwnd)
+            # 获取一级父窗口句柄
+            current_hwnd = self.hwnd
+            while True:
+                parent_hwnd = user32.GetParent(current_hwnd)
+                if parent_hwnd == 0:
+                    break
+                current_hwnd = parent_hwnd
+            user32.ShowWindow(current_hwnd, 9)
 
     @property
     def size(self) -> tuple:

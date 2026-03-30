@@ -1,7 +1,7 @@
 import mss
 import math
 
-class ColorMatch:
+class MatchColor:
     """
     颜色匹配类
     """
@@ -36,11 +36,9 @@ class ColorMatch:
 
     def match(self, source_color: str | tuple, target_color: str | tuple, similarity: float = 0.8) -> tuple:
         """
-        匹配两个颜色是否相似
+            匹配颜色
         Args:
-            (source_color and target_color):
-                str: 颜色十六进制字符串， tuple: (r, g, b) | (x, y)
-
+            (source_color and target_color): str: 颜色十六进制字符串， tuple: (r, g, b) | (x, y)
             similarity (float): 相似度阈值，取值范围 0.0 ~ 1.0，越接近 1 越严格。默认值为 0.8。
         Returns:
             tuple: bool(True | False), float(相似度结果值)
