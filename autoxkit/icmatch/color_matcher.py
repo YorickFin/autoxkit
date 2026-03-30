@@ -13,10 +13,10 @@ class ColorMatcher:
         hex_color = hex_color.lstrip('#')
         return tuple(int(hex_color[i:i+2], 16) for i in (0, 2, 4))
 
-    def get_screen_color(self, x: int, y: int, is_return_hex: bool = False) -> str | tuple:
+    def get_pixel_color(self, x: int, y: int, is_return_hex: bool = False) -> str | tuple:
         """
             获取屏幕坐标 (x, y) 处的颜色
-        Parameters:
+        Args:
             x (int): 屏幕坐标 x 轴
             y (int): 屏幕坐标 y 轴
             is_return_hex (bool, optional): 是否返回十六进制格式字符串，默认返回 RGB 元组
@@ -29,13 +29,12 @@ class ColorMatcher:
 
         if is_return_hex:   # 返回十六进制字符串
             return f"#{pixel[0]:02X}{pixel[1]:02X}{pixel[2]:02X}"
-        else:
-            return pixel    # 返回 RGB 元组
+        return pixel    # 返回 RGB 元组
 
     def color_match(self, source_color: str | tuple, target_color: str | tuple, similarity: float = 0.8) -> tuple:
         """
         匹配两个颜色是否相似
-        Parameters:
+        Args:
             (source_color and target_color):
                 str: 颜色十六进制字符串， tuple: (r, g, b) | (x, y)
 
@@ -46,12 +45,12 @@ class ColorMatcher:
         if type(source_color) is str:
             source_color = self._hex_to_rgb(source_color)
         elif type(source_color) is tuple and len(source_color) == 2:
-            source_color = self.get_screen_color(*source_color, is_return_hex=False)
+            source_color = self.get_pixel_color(*source_color, is_return_hex=False)
 
         if type(target_color) is str:
             target_color = self._hex_to_rgb(target_color)
         elif type(target_color) is tuple and len(target_color) == 2:
-            target_color = self.get_screen_color(*target_color, is_return_hex=False)
+            target_color = self.get_pixel_color(*target_color, is_return_hex=False)
 
         # 计算欧几里得距离
         distance = math.sqrt(sum((a - b) ** 2 for a, b in zip(source_color, target_color)))

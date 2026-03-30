@@ -5,7 +5,7 @@ from scipy.signal import fftconvolve
 from PIL import Image
 from pathlib import Path
 
-from .tools import RectTuple
+from ..tools import RectTuple
 
 
 class ImageMatcher:
@@ -18,21 +18,21 @@ class ImageMatcher:
         """
         return np.mean(image, axis=2).astype(np.float32)
 
-    def _image_to_numpy(self, image, from_mss: bool = False) -> np.ndarray:
+    def _image_to_numpy(self, image, to_rgb: bool = False) -> np.ndarray:
         """
         将图像转换为 numpy 数组
-        Parameters:
+        Args:
             image: 图像对象
-            from_mss: 是否来自 MSS 截图
+            to_rgb: 是否转换为 RGB 格式
         """
         img_array = np.array(image)
-        if from_mss and img_array.shape[2] == 4:
-            # MSS 返回的是 BGRA 格式，需要转换为 RGBA
-            img_array = img_array[:, :, [2, 1, 0, 3]]
-
-        # 确保是 RGB 三通道格式
+        # 确保是三通道格式
         if img_array.shape[2] != 3:
             img_array = img_array[:, :, :3]
+
+        if to_rgb:
+            # BGR -> RGB
+            img_array = img_array[:, :, [2, 1, 0]]
 
         return img_array
 
@@ -57,7 +57,7 @@ class ImageMatcher:
     def screenshot(self, rect: tuple[int, int, int, int], image_path: str=None) -> np.ndarray:
         """
         截图: 获取显示器 rect 区域的图像
-        Parameters:
+        Args:
             rect (tuple): 矩形区域元组，应包含 (x1, y1, x2, y2)。
             image_path (str, optional): 截图保存路径，包含自定义文件名。
         Returns:
@@ -66,36 +66,51 @@ class ImageMatcher:
         rect = RectTuple(*rect)
         screen_image = self.sct.grab(rect)
         # 转换为 numpy 数组，MSS 返回 BGRA 格式需要转换
-        screen_image = self._image_to_numpy(screen_image, from_mss=True)
+        screen_image = self._image_to_numpy(screen_image, to_rgb=True)
 
         if image_path is not None:
             self.save_image(screen_image, image_path)
 
         return screen_image
 
-    def image_match(self, source_image: np.ndarray, target_image: np.ndarray,
-                    similarity: float = 0.8
-                    ) -> tuple[tuple, float]:
+    def image_match(self, target_image: np.ndarray=None, rect: tuple[int, int, int, int] = None,
+                    similarity: float = 0.8) -> tuple[tuple, float]:
         """
         匹配图像
-        Parameters:
-            source_image (np.ndarray): 待匹配图像
+        Args:
             target_image (np.ndarray): 目标图像
+            rect (tuple, optional): 矩形区域元组，应包含 (x1, y1, x2, y2)
             similarity (float, optional): 相似度阈值，默认 0.8。
         Returns:
             tuple[tuple, float]: 匹配结果元组，包含匹配位置和相似度。
         """
+        # 处理输入参数
+        if target_image is None or rect is None:
+            raise ValueError("必须提供 target_image 和 rect 参数")
+
+        # 截取屏幕区域
+        rect = RectTuple(*rect)
+        source_image = self.screenshot(rect)
+
+        # 转换为 float32 精度
         source_image = np.array(source_image, dtype=np.float32)
         target_image = np.array(target_image, dtype=np.float32)
 
-        return self._match_ncc(source_image, target_image, similarity)
+        # 调用匹配方法
+        (x, y), sim = self._match_ncc(source_image, target_image, similarity)
+
+        # 调整坐标以对应屏幕坐标
+        if x is not False and y is not False:
+            x, y = x + rect.x1, y + rect.y1
+            return (int(x), int(y)), sim
+        else:
+            return (False, False), sim
 
     def _match_ncc(self, source_image: np.ndarray, target_image: np.ndarray,
-                   similarity: float = 0.8
-                   ) -> tuple[tuple, float]:
+                   similarity: float = 0.8) -> tuple[tuple, float]:
         """
         简介:
-            使用 FFT 加速的归一化互相关(NCC)方法匹配图像 (灰度)。
+            使用 FFT 加速的归一化互相关(NCC)方法匹配图像 (灰度)，并使用边缘检测进行二次验证。
 
         性能参考:
             性能为 0.006秒 ~ 0.2秒 ~ 0.6秒 之间，取决于图像大小。
@@ -129,13 +144,50 @@ class ImageMatcher:
         if max_sim >= similarity:
             # 左上角坐标
             y, x = np.unravel_index(np.argmax(ncc), ncc.shape)
-            w, h = target_image.shape[:2]
-            # 中心坐标
-            x = x + w // 2
-            y = y + h // 2
-            return (int(x), int(y)), round(float(max_sim), 3)
+            h, w = target_image.shape[:2]
+
+            # 确保提取区域在源图像范围内
+            if y + h <= source_image.shape[0] and x + w <= source_image.shape[1]:
+                # 提取匹配区域
+                matched_region = source_image[y:y+h, x:x+w]
+
+                # 边缘检测二次验证
+                target_edges = self._edge_detection(target_image)
+                matched_edges = self._edge_detection(matched_region)
+
+                # 计算边缘相似度
+                edge_numerator = np.sum(target_edges * matched_edges)
+                edge_denominator = np.sqrt(np.sum(target_edges**2) * np.sum(matched_edges**2))
+                edge_denominator = max(edge_denominator, 1e-8)  # 避免除零
+                edge_sim = edge_numerator / edge_denominator
+
+                # 只有当边缘相似度也达到阈值时，才认为匹配成功
+                if edge_sim >= similarity:
+                    # 中心坐标
+                    center_x = x + w // 2
+                    center_y = y + h // 2
+                    return (int(center_x), int(center_y)), round(float(max_sim), 3)
+
+        return (False, False), round(float(max_sim), 3)
+
+    def _edge_detection(self, image: np.ndarray) -> np.ndarray:
+        """
+        使用 Sobel 算子进行边缘检测
+        """
+        # 转灰度
+        if len(image.shape) == 3:
+            gray = self._to_gray(image)
         else:
-            return (False, False), round(float(max_sim), 3)
+            gray = image
+
+        # Sobel 边缘检测
+        sobel_x = ndimage.sobel(gray, axis=0, mode='constant')
+        sobel_y = ndimage.sobel(gray, axis=1, mode='constant')
+        edges = np.sqrt(sobel_x**2 + sobel_y**2)
+
+        # 归一化
+        edges = edges / (np.max(edges) + 1e-8)
+        return edges
 
     def proc_image(self, image: np.ndarray,
                          colors: list[tuple[int, int, int]] | list[str],
@@ -145,7 +197,7 @@ class ImageMatcher:
         简介:
             预处理图像, 方便给 tesseract 等库做文字识别,
             将指定颜色转换为黑色, 其他为白色, 然后做超分辨率放大。
-        Parameters:
+        Args:
             image (np.ndarray): 待预处理图像
             colors (list[tuple[int, int, int]] | list[str]): 支持 RGB 元组和十六进制字符串。
         Returns:

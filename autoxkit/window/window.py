@@ -1,6 +1,7 @@
 
 import ctypes
 from ctypes import wintypes
+from ctypes.wintypes import RECT
 from .window_action import WindowAction
 from .window_match import WindowMatch
 
@@ -26,6 +27,15 @@ class Window(WindowAction, WindowMatch):
         if self.hwnd:
             user32.SetForegroundWindow(self.hwnd)
             user32.SetFocus(self.hwnd)
+
+    @property
+    def size(self) -> tuple:
+        """返回窗口大小"""
+        if self.hwnd:
+            rect = RECT()
+            user32.GetClientRect(self.hwnd, ctypes.byref(rect))
+            return (rect.right - rect.left, rect.bottom - rect.top)
+        raise ValueError("窗口句柄未设置")
 
     def bind_window(self):
         """

@@ -4,16 +4,16 @@
 [![Python Version](https://img.shields.io/pypi/pyversions/autoxkit.svg)](https://pypi.org/project/autoxkit/)
 [![License](https://img.shields.io/github/license/YorickFin/autoxkit)](https://github.com/YorickFin/autoxkit)
 
-一个轻量级的 Windows 自动化库，支持鼠标与键盘操作模拟、全局hook监听、图色识别等功能。适用于自动化脚本、软件测试、人机交互等多种场景。
+一个轻量级的 Windows 自动化库，支持前后台键鼠操作、前后台图色识别、全局hook监听等功能。适用于自动化脚本、软件测试、人机交互等多种场景。
 
 ---
 
 ## ✨ 功能特色
 
-- ✅ 支持全局图色识别
+- ✅ 前后台键鼠操作
+- ✅ 前后台图色识别
+- ✅ 文本输入模拟
 - ✅ 全局鼠标和键盘hook监听
-- ✅ 支持鼠标点击、移动、滚轮等操作
-- ✅ 支持按键按下、释放、文本输入等模拟
 - ✅ 简洁的事件回调机制，便于集成和扩展
 - ✅ 完全基于 Python 实现，易于上手和二次开发
 

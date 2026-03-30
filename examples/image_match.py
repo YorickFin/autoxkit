@@ -17,9 +17,8 @@ image_matcher = ImageMatcher()
 
 # 图像匹配
 # target_image = image_matcher.read_image(r"img\1.png")
-# source_image = image_matcher.screenshot(rect=(0, 0, 600, 600))
 # start_time = time.time()
-# (x, y), sim = image_matcher.image_match(source_image, target_image, similarity=0.9)
+# (x, y), sim = image_matcher.image_match(target_image=target_image, rect=(0, 0, 100, 100), similarity=0.8)
 # print(f"用时：{time.time() - start_time}")
 # print(x, y, sim)
 

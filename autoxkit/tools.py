@@ -48,6 +48,16 @@ class RectTuple(tuple):
         """返回右下角y2坐标"""
         return self[3]
 
+    @property
+    def width(self):
+        """返回矩形宽度"""
+        return self.x2 - self.x1
+
+    @property
+    def height(self):
+        """返回矩形高度"""
+        return self.y2 - self.y1
+
     def __repr__(self):
         """返回对象的字符串表示"""
         return f"({self.x1}, {self.y1}, {self.x2}, {self.y2})"
