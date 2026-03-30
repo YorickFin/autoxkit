@@ -7,8 +7,8 @@ from autoxkit.mousekey import (
     HotkeyListener
 )
 from autoxkit.icmatch import (
-    ColorMatcher,
-    ImageMatcher
+    ColorMatch,
+    ImageMatch
 )
 from autoxkit.window import (
     Window
@@ -23,7 +23,7 @@ __all__ = [
     "KeyEvent",
     "MouseEvent",
     "HotkeyListener",
-    "ColorMatcher",
-    "ImageMatcher",
+    "ColorMatch",
+    "ImageMatch",
     "Window"
 ]

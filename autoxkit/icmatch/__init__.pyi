@@ -1,4 +1,4 @@
-from .color_matcher import ColorMatcher
-from .image_matcher import ImageMatcher
+from .color_match import ColorMatch
+from .image_match import ImageMatch
 
-__all__ = ["ColorMatcher", "ImageMatcher"]
+__all__ = ["ColorMatch", "ImageMatch"]

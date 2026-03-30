@@ -8,7 +8,10 @@ from pathlib import Path
 from ..tools import RectTuple
 
 
-class ImageMatcher:
+class ImageMatch:
+    """
+    图像匹配类
+    """
     def __init__(self):
         self.sct = mss.mss()
 
@@ -73,7 +76,7 @@ class ImageMatcher:
 
         return screen_image
 
-    def image_match(self, target_image: np.ndarray=None, rect: tuple[int, int, int, int] = None,
+    def match(self, target_image: np.ndarray=None, rect: tuple[int, int, int, int] = None,
                     similarity: float = 0.8) -> tuple[tuple, float]:
         """
         匹配图像
@@ -230,3 +233,5 @@ class ImageMatcher:
         image = ndimage.zoom(image, (scale_factor, scale_factor, 1), order=3)
         image = color_filter(image, (0, 0, 0))
         return image
+
+

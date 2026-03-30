@@ -1,7 +1,10 @@
 import mss
 import math
 
-class ColorMatcher:
+class ColorMatch:
+    """
+    颜色匹配类
+    """
     def __init__(self):
         self.sct = mss.mss()
         self.max_distance = math.sqrt(255**2 * 3)  # RGB 空间最大距离 ≈ 441.67
@@ -31,7 +34,7 @@ class ColorMatcher:
             return f"#{pixel[0]:02X}{pixel[1]:02X}{pixel[2]:02X}"
         return pixel    # 返回 RGB 元组
 
-    def color_match(self, source_color: str | tuple, target_color: str | tuple, similarity: float = 0.8) -> tuple:
+    def match(self, source_color: str | tuple, target_color: str | tuple, similarity: float = 0.8) -> tuple:
         """
         匹配两个颜色是否相似
         Args:
