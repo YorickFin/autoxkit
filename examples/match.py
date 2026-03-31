@@ -70,8 +70,8 @@ def match_image_example():
     print(x, y, sim)
 
     # 图像预处理
-    # image = match_image.read_image(r"examples\text.png")
-    # image = match_image.proc_image(image, colors=["#1A1A1A", "#AC1515"], threshold=200)
+    # image = match_image.read_image(r"examples\text.jpg")
+    # image = match_image.proc_image(image, colors=["#070506"], threshold=200)
     # match_image.save_image(image, r"examples\text_proc.png")
 
 if __name__ == '__main__':
