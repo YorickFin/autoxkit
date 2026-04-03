@@ -3,7 +3,7 @@ from autoxkit.window import Window
 
 def window_match():
     # 绑定窗口，指定窗口标题和类名（可单选一）
-    window = Window(title_name='MuMuNxDevice', class_name='Qt5156QWindowIcon')
+    window = Window(title_name='MuMuNxDevice', class_name='', hwnd=None)
     # 前台被覆盖窗口可以正常操作，不需要激活，最小化到任务栏的窗口需要先激活
     window.activate_window()
     time.sleep(1)

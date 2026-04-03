@@ -4,7 +4,7 @@ from autoxkit.window import Window
 def window_action():
     """键鼠操作"""
     # 绑定窗口
-    window = Window(title_name='MuMuNxDevice', class_name=None, hand=None)
+    window = Window(title_name='MuMuNxDevice', class_name='', hwnd=None)
     # 前台被覆盖窗口可以正常操作，不需要激活，最小化到任务栏的窗口需要先激活
     window.activate_window()
     time.sleep(1)
@@ -34,11 +34,11 @@ def window_action():
     # window.send_mouse_wheel(-100)
 
     # 发送文字, 需要先点击输入框
+    window.send_left_click(500, 660)
+    time.sleep(1)
     # window.send_left_click(167, 56)
     # time.sleep(1)
-    # window.send_left_click(167, 56)
-    # time.sleep(1)
-    # window.send_text("hello, World!")
+    window.send_text("hello, World!")
 
 if __name__ == "__main__":
     window_action()
