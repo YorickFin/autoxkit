@@ -39,8 +39,8 @@ class KeyBoard:
         extra = ctypes.c_ulong(0)
         ii_ = Input_I()
         ii_.ki = KeyBdInput(0, scan, flags, 0, ctypes.pointer(extra))
-        x = Input(ctypes.c_ulong(1), ii_)
-        SendInput(1, ctypes.pointer(x), ctypes.sizeof(x))
+        input_struct = Input(ctypes.c_ulong(1), ii_)
+        SendInput(1, ctypes.pointer(input_struct), ctypes.sizeof(input_struct))
 
     def key_down(self, key_name: str):
         if self.compat:
@@ -64,8 +64,8 @@ class KeyBoard:
         extra = ctypes.c_ulong(0)
         ii_ = Input_I()
         ii_.ki = KeyBdInput(0, scan, flags, 0, ctypes.pointer(extra))
-        x = Input(ctypes.c_ulong(1), ii_)
-        SendInput(1, ctypes.pointer(x), ctypes.sizeof(x))
+        input_struct = Input(ctypes.c_ulong(1), ii_)
+        SendInput(1, ctypes.pointer(input_struct), ctypes.sizeof(input_struct))
 
     def key_up(self, key_name: str):
         if self.compat:
