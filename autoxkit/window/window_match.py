@@ -86,19 +86,65 @@ class WindowMatch:
             raise FileNotFoundError(f"目录不存在: {image_path.parent}")
         Image.fromarray(image).save(image_path)
 
-    def screenshot(self, rect: tuple[int, int, int, int] = None, save_path: str = None) -> np.ndarray:
+    def screenshot(self, save_path: str = None, rect: tuple[int, int, int, int] = None) -> np.ndarray:
         """
         截图:
             对 self.hwnd 窗口进行区域或完全截图
         Args:
+            save_path (str, None): 截图保存路径，包含自定义文件名。
             rect (tuple, None): 矩形区域元组，应包含 (x1, y1, x2, y2)，相对于窗口左上角。
                                    如果为 None，则截取整个窗口。
-            save_path (str, None): 截图保存路径，包含自定义文件名。
         Returns:
             np.ndarray: 截图图像的 numpy 数组表示。
         """
         if not self.hwnd:
             raise ValueError("窗口句柄未设置")
+
+        # 尝试多种截图方法
+        methods = [
+            self._screenshot_bitblt,
+            self._screenshot_printwindow
+        ]
+
+        last_error = None
+        for method in methods:
+            print(f"尝试方法: {method.__name__}")
+            try:
+                img_array = method(rect)
+                # 检查是否为纯黑图像
+                if not self._is_black_image(img_array):
+                    # 保存截图（如果指定了路径）
+                    if save_path:
+                        self.save_image(img_array, save_path)
+                    return img_array
+                last_error = f"{method.__name__} 截图结果为纯黑"
+            except Exception as e:
+                last_error = f"{method.__name__} 失败: {e}"
+
+        raise Exception(f"所有截图方法都失败: {last_error}")
+
+    def _is_black_image(self, img_array: np.ndarray, threshold: int = 10, ratio: float = 0.95) -> bool:
+        """
+        检查图像是否为纯黑或接近纯黑
+        Args:
+            img_array: 图像数组
+            threshold: 像素值阈值，低于此值视为黑色像素
+            ratio: 黑色像素比例阈值，超过此比例认为是纯黑图像
+        Returns:
+            bool: 如果黑色像素比例超过阈值，返回True
+        """
+        black_mask = np.all(img_array < threshold, axis=2)
+        black_ratio = np.sum(black_mask) / black_mask.size
+        return black_ratio > ratio
+
+    def _screenshot_bitblt(self, rect: tuple[int, int, int, int] = None) -> np.ndarray:
+        """
+        使用 BitBlt 方法截图
+        """
+        hdc = None
+        hdc_mem = None
+        hbitmap = None
+        old_bitmap = None
 
         try:
             # 获取窗口DC
@@ -160,20 +206,112 @@ class WindowMatch:
 
             # 转为RGB格式数组
             img_array = self._image_to_numpy(img_array, to_rgb=True)
-        except Exception as e:
-            raise Exception(f"截图失败: {e}")
-
+            return img_array
         finally:
             # 清理资源
-            ctypes.windll.gdi32.SelectObject(hdc_mem, old_bitmap)
-            ctypes.windll.gdi32.DeleteObject(hbitmap)
-            ctypes.windll.gdi32.DeleteDC(hdc_mem)
-            ctypes.windll.user32.ReleaseDC(self.hwnd, hdc)
+            if old_bitmap and hdc_mem:
+                ctypes.windll.gdi32.SelectObject(hdc_mem, old_bitmap)
+            if hbitmap:
+                ctypes.windll.gdi32.DeleteObject(hbitmap)
+            if hdc_mem:
+                ctypes.windll.gdi32.DeleteDC(hdc_mem)
+            if hdc:
+                ctypes.windll.user32.ReleaseDC(self.hwnd, hdc)
 
-        # 保存截图（如果指定了路径）
-        if save_path:
-            self.save_image(img_array, save_path)
-        return img_array
+    def _screenshot_printwindow(self, rect: tuple[int, int, int, int] = None) -> np.ndarray:
+        """
+        使用 PrintWindow 方法截图
+        注意：PrintWindow API 无法直接指定区域，因此先截取整个窗口客户区，
+              然后通过数组切片提取指定区域。
+        """
+        hdc = None
+        hdc_mem = None
+        hbitmap = None
+        old_bitmap = None
+
+        try:
+            # 获取窗口DC
+            hdc = ctypes.windll.user32.GetDC(self.hwnd)
+
+            # 计算窗口客户区大小
+            client_rect = RECT()
+            ctypes.windll.user32.GetClientRect(self.hwnd, ctypes.byref(client_rect))
+
+            # 确定截图区域
+            if rect is None:
+                # 截取整个窗口
+                x, y, width, height = 0, 0, client_rect.right, client_rect.bottom
+                crop_needed = False
+            else:
+                # 截取指定区域（先截取整个窗口，后续裁剪）
+                rect = RectTuple(*rect)
+                x, y, width, height = rect.x1, rect.y1, rect.width, rect.height
+                crop_needed = True
+
+            # 创建兼容DC
+            hdc_mem = ctypes.windll.gdi32.CreateCompatibleDC(hdc)
+
+            # 创建位图（使用整个窗口大小）
+            hbitmap = ctypes.windll.gdi32.CreateCompatibleBitmap(hdc, width, height)
+
+            # 选择位图到兼容DC
+            old_bitmap = ctypes.windll.gdi32.SelectObject(hdc_mem, hbitmap)
+
+            # 使用 PrintWindow 方法截图
+            # 0x00000002 表示 PW_CLIENTONLY，只截取客户区
+            result = ctypes.windll.user32.PrintWindow(self.hwnd, hdc_mem, 0x00000002)
+            if not result:
+                raise Exception("PrintWindow 调用失败")
+
+            # 准备位图信息
+            bmi = BITMAPINFO()
+            bmi.bmiHeader.biSize = ctypes.sizeof(BITMAPINFOHEADER)
+            bmi.bmiHeader.biWidth = width
+            bmi.bmiHeader.biHeight = -height  # 负值表示从上到下
+            bmi.bmiHeader.biPlanes = 1
+            bmi.bmiHeader.biBitCount = 24  # 24位RGB
+            bmi.bmiHeader.biCompression = 0  # BI_RGB
+            bmi.bmiHeader.biSizeImage = 0
+            bmi.bmiHeader.biXPelsPerMeter = 0
+            bmi.bmiHeader.biYPelsPerMeter = 0
+            bmi.bmiHeader.biClrUsed = 0
+            bmi.bmiHeader.biClrImportant = 0
+
+            # 分配内存
+            buffer_size = width * height * 3
+            buffer = ctypes.create_string_buffer(buffer_size)
+
+            # 获取位图数据
+            ctypes.windll.gdi32.GetDIBits(
+                hdc_mem, hbitmap, 0, height, buffer, ctypes.byref(bmi), 0
+            )
+
+            # 转换为numpy数组
+            img_array = np.frombuffer(buffer, dtype=np.uint8).reshape(height, width, 3)
+
+            # 转为RGB格式数组
+            img_array = self._image_to_numpy(img_array, to_rgb=True)
+
+            # 如果需要裁剪到指定区域
+            if crop_needed:
+                # 确保裁剪区域在窗口范围内
+                x = max(0, min(x, width - 1))
+                y = max(0, min(y, height - 1))
+                width = min(width, width - x)
+                height = min(height, height - y)
+                img_array = img_array[y:y+height, x:x+width]
+
+            return img_array
+        finally:
+            # 清理资源
+            if old_bitmap and hdc_mem:
+                ctypes.windll.gdi32.SelectObject(hdc_mem, old_bitmap)
+            if hbitmap:
+                ctypes.windll.gdi32.DeleteObject(hbitmap)
+            if hdc_mem:
+                ctypes.windll.gdi32.DeleteDC(hdc_mem)
+            if hdc:
+                ctypes.windll.user32.ReleaseDC(self.hwnd, hdc)
 
     def get_pixel_color(self, x: int, y: int, is_return_hex: bool = False) -> str | tuple:
         """

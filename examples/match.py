@@ -77,4 +77,3 @@ def match_image_example():
 if __name__ == '__main__':
     # match_color_example()
     match_image_example()
-    pass
