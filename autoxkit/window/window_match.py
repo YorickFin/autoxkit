@@ -221,7 +221,7 @@ class WindowMatch:
     def _screenshot_printwindow(self, rect: tuple[int, int, int, int] = None) -> np.ndarray:
         """
         使用 PrintWindow 方法截图
-        注意：PrintWindow API 无法直接指定区域，因此先截取整个窗口客户区，
+        注意：PrintWindow API 无法直接指定区域，因此先截取整个窗口，
               然后通过数组切片提取指定区域。
         """
         hdc = None
@@ -233,33 +233,46 @@ class WindowMatch:
             # 获取窗口DC
             hdc = ctypes.windll.user32.GetDC(self.hwnd)
 
-            # 计算窗口客户区大小
+            # 获取整个窗口的矩形（包括标题栏、边框）
+            window_rect = RECT()
+            ctypes.windll.user32.GetWindowRect(self.hwnd, ctypes.byref(window_rect))
+            window_width = window_rect.right - window_rect.left
+            window_height = window_rect.bottom - window_rect.top
+
+            # 获取客户区的矩形
             client_rect = RECT()
             ctypes.windll.user32.GetClientRect(self.hwnd, ctypes.byref(client_rect))
-            client_width, client_height = client_rect.right, client_rect.bottom
+
+            # 获取客户区左上角在屏幕上的坐标
+            client_point = wintypes.POINT(0, 0)
+            ctypes.windll.user32.ClientToScreen(self.hwnd, ctypes.byref(client_point))
+
+            # 计算客户区相对于窗口左上角的偏移
+            client_offset_x = client_point.x - window_rect.left
+            client_offset_y = client_point.y - window_rect.top
 
             # 确定截图区域
             if rect is None:
                 # 截取整个窗口
-                x, y, width, height = 0, 0, client_width, client_height
+                x, y, width, height = 0, 0, window_width, window_height
                 crop_needed = False
             else:
-                # 截取指定区域（先截取整个窗口，后续裁剪）
+                # 截取指定区域（相对于客户区）
                 rect = RectTuple(*rect)
-                x, y, width, height = rect.x1, rect.y1, rect.width, rect.height
+                # 转换为相对于整个窗口的坐标
+                x, y, width, height = rect.x1 + client_offset_x, rect.y1 + client_offset_y, rect.width, rect.height
                 crop_needed = True
 
             # 创建兼容DC
             hdc_mem = ctypes.windll.gdi32.CreateCompatibleDC(hdc)
 
             # 创建位图（使用整个窗口大小）
-            hbitmap = ctypes.windll.gdi32.CreateCompatibleBitmap(hdc, client_width, client_height)
+            hbitmap = ctypes.windll.gdi32.CreateCompatibleBitmap(hdc, window_width, window_height)
 
             # 选择位图到兼容DC
             old_bitmap = ctypes.windll.gdi32.SelectObject(hdc_mem, hbitmap)
 
             # 使用 PrintWindow 方法截图
-            # 0x00000002 表示 PW_CLIENTONLY，只截取客户区
             result = ctypes.windll.user32.PrintWindow(self.hwnd, hdc_mem, 0x00000002)
             if not result:
                 raise Exception("PrintWindow 调用失败")
@@ -267,8 +280,8 @@ class WindowMatch:
             # 准备位图信息
             bmi = BITMAPINFO()
             bmi.bmiHeader.biSize = ctypes.sizeof(BITMAPINFOHEADER)
-            bmi.bmiHeader.biWidth = client_width
-            bmi.bmiHeader.biHeight = -client_height  # 负值表示从上到下
+            bmi.bmiHeader.biWidth = window_width
+            bmi.bmiHeader.biHeight = -window_height  # 负值表示从上到下
             bmi.bmiHeader.biPlanes = 1
             bmi.bmiHeader.biBitCount = 24  # 24位RGB
             bmi.bmiHeader.biCompression = 0  # BI_RGB
@@ -279,16 +292,16 @@ class WindowMatch:
             bmi.bmiHeader.biClrImportant = 0
 
             # 分配内存
-            buffer_size = client_width * client_height * 3
+            buffer_size = window_width * window_height * 3
             buffer = ctypes.create_string_buffer(buffer_size)
 
             # 获取位图数据
             ctypes.windll.gdi32.GetDIBits(
-                hdc_mem, hbitmap, 0, client_height, buffer, ctypes.byref(bmi), 0
+                hdc_mem, hbitmap, 0, window_height, buffer, ctypes.byref(bmi), 0
             )
 
             # 转换为numpy数组
-            img_array = np.frombuffer(buffer, dtype=np.uint8).reshape(client_height, client_width, 3)
+            img_array = np.frombuffer(buffer, dtype=np.uint8).reshape(window_height, window_width, 3)
 
             # 转为RGB格式数组
             img_array = self._image_to_numpy(img_array, to_rgb=True)
@@ -299,8 +312,8 @@ class WindowMatch:
                 # 计算裁剪区域的边界
                 x1 = max(0, x)
                 y1 = max(0, y)
-                x2 = min(client_width, x + width)
-                y2 = min(client_height, y + height)
+                x2 = min(window_width, x + width)
+                y2 = min(window_height, y + height)
 
                 # 确保裁剪区域有效
                 if x1 < x2 and y1 < y2:
