@@ -102,13 +102,13 @@ class WindowMatch:
 
         # 尝试多种截图方法
         methods = [
-            self._screenshot_bitblt,
-            self._screenshot_printwindow
+            self._screenshot_printwindow,
+            self._screenshot_bitblt
         ]
 
         last_error = None
         for method in methods:
-            print(f"尝试方法: {method.__name__}")
+            # print(f"尝试方法: {method.__name__}")
             try:
                 img_array = method(rect)
                 # 检查是否为纯黑图像
@@ -236,11 +236,12 @@ class WindowMatch:
             # 计算窗口客户区大小
             client_rect = RECT()
             ctypes.windll.user32.GetClientRect(self.hwnd, ctypes.byref(client_rect))
+            client_width, client_height = client_rect.right, client_rect.bottom
 
             # 确定截图区域
             if rect is None:
                 # 截取整个窗口
-                x, y, width, height = 0, 0, client_rect.right, client_rect.bottom
+                x, y, width, height = 0, 0, client_width, client_height
                 crop_needed = False
             else:
                 # 截取指定区域（先截取整个窗口，后续裁剪）
@@ -252,7 +253,7 @@ class WindowMatch:
             hdc_mem = ctypes.windll.gdi32.CreateCompatibleDC(hdc)
 
             # 创建位图（使用整个窗口大小）
-            hbitmap = ctypes.windll.gdi32.CreateCompatibleBitmap(hdc, width, height)
+            hbitmap = ctypes.windll.gdi32.CreateCompatibleBitmap(hdc, client_width, client_height)
 
             # 选择位图到兼容DC
             old_bitmap = ctypes.windll.gdi32.SelectObject(hdc_mem, hbitmap)
@@ -266,8 +267,8 @@ class WindowMatch:
             # 准备位图信息
             bmi = BITMAPINFO()
             bmi.bmiHeader.biSize = ctypes.sizeof(BITMAPINFOHEADER)
-            bmi.bmiHeader.biWidth = width
-            bmi.bmiHeader.biHeight = -height  # 负值表示从上到下
+            bmi.bmiHeader.biWidth = client_width
+            bmi.bmiHeader.biHeight = -client_height  # 负值表示从上到下
             bmi.bmiHeader.biPlanes = 1
             bmi.bmiHeader.biBitCount = 24  # 24位RGB
             bmi.bmiHeader.biCompression = 0  # BI_RGB
@@ -278,16 +279,16 @@ class WindowMatch:
             bmi.bmiHeader.biClrImportant = 0
 
             # 分配内存
-            buffer_size = width * height * 3
+            buffer_size = client_width * client_height * 3
             buffer = ctypes.create_string_buffer(buffer_size)
 
             # 获取位图数据
             ctypes.windll.gdi32.GetDIBits(
-                hdc_mem, hbitmap, 0, height, buffer, ctypes.byref(bmi), 0
+                hdc_mem, hbitmap, 0, client_height, buffer, ctypes.byref(bmi), 0
             )
 
             # 转换为numpy数组
-            img_array = np.frombuffer(buffer, dtype=np.uint8).reshape(height, width, 3)
+            img_array = np.frombuffer(buffer, dtype=np.uint8).reshape(client_height, client_width, 3)
 
             # 转为RGB格式数组
             img_array = self._image_to_numpy(img_array, to_rgb=True)
@@ -295,11 +296,18 @@ class WindowMatch:
             # 如果需要裁剪到指定区域
             if crop_needed:
                 # 确保裁剪区域在窗口范围内
-                x = max(0, min(x, width - 1))
-                y = max(0, min(y, height - 1))
-                width = min(width, width - x)
-                height = min(height, height - y)
-                img_array = img_array[y:y+height, x:x+width]
+                # 计算裁剪区域的边界
+                x1 = max(0, x)
+                y1 = max(0, y)
+                x2 = min(client_width, x + width)
+                y2 = min(client_height, y + height)
+
+                # 确保裁剪区域有效
+                if x1 < x2 and y1 < y2:
+                    img_array = img_array[y1:y2, x1:x2]
+                else:
+                    # 如果裁剪区域无效，返回空图像
+                    img_array = np.zeros((0, 0, 3), dtype=np.uint8)
 
             return img_array
         finally:
