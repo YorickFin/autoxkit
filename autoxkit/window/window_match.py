@@ -253,15 +253,13 @@ class WindowMatch:
 
             # 确定截图区域
             if rect is None:
-                # 截取整个窗口
-                x, y, width, height = 0, 0, window_width, window_height
-                crop_needed = False
+                # 截取整个客户区窗口
+                x, y, width, height = 0 + client_offset_x, 0 + client_offset_y, client_rect.right, client_rect.bottom
             else:
                 # 截取指定区域（相对于客户区）
                 rect = RectTuple(*rect)
                 # 转换为相对于整个窗口的坐标
                 x, y, width, height = rect.x1 + client_offset_x, rect.y1 + client_offset_y, rect.width, rect.height
-                crop_needed = True
 
             # 创建兼容DC
             hdc_mem = ctypes.windll.gdi32.CreateCompatibleDC(hdc)
@@ -306,21 +304,19 @@ class WindowMatch:
             # 转为RGB格式数组
             img_array = self._image_to_numpy(img_array, to_rgb=True)
 
-            # 如果需要裁剪到指定区域
-            if crop_needed:
-                # 确保裁剪区域在窗口范围内
-                # 计算裁剪区域的边界
-                x1 = max(0, x)
-                y1 = max(0, y)
-                x2 = min(window_width, x + width)
-                y2 = min(window_height, y + height)
+            # 确保裁剪区域在窗口范围内
+            # 计算裁剪区域的边界
+            x1 = max(0, x)
+            y1 = max(0, y)
+            x2 = min(window_width, x + width)
+            y2 = min(window_height, y + height)
 
-                # 确保裁剪区域有效
-                if x1 < x2 and y1 < y2:
-                    img_array = img_array[y1:y2, x1:x2]
-                else:
-                    # 如果裁剪区域无效，返回空图像
-                    img_array = np.zeros((0, 0, 3), dtype=np.uint8)
+            # 确保裁剪区域有效
+            if x1 < x2 and y1 < y2:
+                img_array = img_array[y1:y2, x1:x2]
+            else:
+                # 如果裁剪区域无效，返回空图像
+                img_array = np.zeros((0, 0, 3), dtype=np.uint8)
 
             return img_array
         finally:
