@@ -267,9 +267,6 @@ class HookListener:
                 if user32.PeekMessageW(byref(msg), 0, 0, 0, 1):  # PM_REMOVE = 1
                     user32.TranslateMessage(byref(msg))
                     user32.DispatchMessageW(byref(msg))
-                else:
-                    # 短暂休眠，避免 CPU 占用过高
-                    threading.Event().wait(0.01)
             except Exception:
                 # 出现异常直接跳出循环，保证能清理钩子
                 break
