@@ -39,11 +39,11 @@ pip install .
 
 ```python
 """
-return False 只监听事件，不阻止事件传播
+return Any or not return 只监听事件，不阻止事件传播
+
 return True 监听事件，并阻止事件传播，可以理解为下一个窗口不会收到该事件
 """
 
-import time
 from autoxkit.mousekey import HookListener, KeyEvent, MouseEvent
 
 def key_down(event: KeyEvent):
@@ -73,15 +73,14 @@ hook_listener.add_handler('mousedown', mouse_down)
 hook_listener.add_handler('mouseup', mouse_up)
 hook_listener.start()
 
-if __name__ == '__main__':
-    print("当前鼠标位置:", hook_listener.get_mouse_position())
-    print("HookListener 正在运行... 按 Ctrl+C 退出")
+print("当前鼠标位置:", hook_listener.get_mouse_position())
 
+if __name__ == '__main__':
     try:
-        while True:
-            time.sleep(1)
+        hook_listener.wait()
     except Exception:
         hook_listener.stop()
+
 ```
 
 更多示例请参考：[examples](https://github.com/YorickFin/autoxkit/tree/main/examples)

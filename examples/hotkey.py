@@ -1,4 +1,3 @@
-import time
 from autoxkit.mousekey import HotkeyListener
 
 def save_func():
@@ -20,11 +19,7 @@ hotkeylistener.register_hotkey("另存", ("Lctrl", "Lshift", "S"), save_as_func)
 hotkeylistener.register_hotkey("删除", ("Lshift", "Delete"), delete_func)
 
 if __name__ == "__main__":
-    print("Hotkey Listener 正在运行... 按 Ctrl+C 退出")
-
     try:
-        while True:
-            time.sleep(1)
+        hotkeylistener.wait()
     except Exception:
         hotkeylistener.stop()
-        print("已退出")

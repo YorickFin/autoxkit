@@ -88,3 +88,6 @@ class HotkeyListener:
 
     def stop(self):
         self.hook_listener.stop()
+
+    def wait(self):
+        self.hook_listener.wait()

@@ -89,10 +89,10 @@ class HookListener:
         self._on_mouseup = []
 
         # 钩子与线程状态
-        self.running = False
         self._thread = None
         self.keyboard_hook = None
         self.mouse_hook = None
+        self._stop_event = threading.Event()
 
         # 必须保存CFUNCTYPE对象引用，避免被GC回收
         # 绑定到实例的 method（bound method）是合法的 callable
@@ -216,15 +216,18 @@ class HookListener:
 
     # 启动监听（新线程 pump message loop）
     def start(self):
-        if self.running:
+        # 如果线程已在运行，直接返回
+        if self._thread and self._thread.is_alive():
             return
-        self.running = True
+        # 如果停止事件已设置，先清除以便重新开始
+        if self._stop_event.is_set():
+            self._stop_event.clear()
         self._thread = threading.Thread(target=self._thread_func, daemon=True)
         self._thread.start()
 
     # 停止监听并取消钩子
     def stop(self):
-        self.running = False
+        self._stop_event.set()
         # 等待线程退出并且取消钩子
         if self._thread and self._thread.is_alive():
             self._thread.join(timeout=1.0)
@@ -242,6 +245,10 @@ class HookListener:
                 pass
             self.mouse_hook = None
 
+    # 阻塞等待直到停止
+    def wait(self):
+        self._stop_event.wait()
+
     # 线程体：注册钩子并 pump 消息
     def _thread_func(self):
         try:
@@ -249,20 +256,20 @@ class HookListener:
             self.keyboard_hook = user32.SetWindowsHookExW(HHC["Key_LL"], self._keyboard_proc_c, self._hMod, 0)
             self.mouse_hook = user32.SetWindowsHookExW(HHC["Mouse_LL"], self._mouse_proc_c, self._hMod, 0)
         except Exception:
-            # 若注册失败，结束
-            self.running = False
+            # 若注册失败，设置停止事件并结束
+            self._stop_event.set()
             return
 
         msg = wintypes.MSG()
-        while self.running:
+        while not self._stop_event.is_set():
             try:
-                # 使用 GetMessageW 替代 PeekMessageW + sleep，避免 CPU 占用和事件延迟
-                if user32.GetMessageW(byref(msg), 0, 0, 0):
+                # 使用 PeekMessageW 配合超时，以便可以检查 _stop_event
+                if user32.PeekMessageW(byref(msg), 0, 0, 0, 1):  # PM_REMOVE = 1
                     user32.TranslateMessage(byref(msg))
                     user32.DispatchMessageW(byref(msg))
                 else:
-                    # GetMessageW 返回 0 表示收到 WM_QUIT 消息
-                    break
+                    # 短暂休眠，避免 CPU 占用过高
+                    threading.Event().wait(0.01)
             except Exception:
                 # 出现异常直接跳出循环，保证能清理钩子
                 break
@@ -280,3 +287,6 @@ class HookListener:
             except Exception:
                 pass
             self.mouse_hook = None
+
+    def __del__(self):
+        self.stop()
