@@ -35,12 +35,21 @@ class Window(WindowAction, WindowMatch):
             user32.ShowWindow(current_hwnd, 9)
 
     @property
-    def size(self) -> tuple:
-        """返回窗口大小"""
+    def client_size(self) -> tuple:
+        """返回窗口客户区大小"""
         if self.hwnd:
             rect = RECT()
             user32.GetClientRect(self.hwnd, ctypes.byref(rect))
             return (rect.right - rect.left, rect.bottom - rect.top)
+        raise ValueError("窗口句柄未设置")
+
+    @property
+    def client_position(self) -> tuple:
+        """返回窗口客户区位置"""
+        if self.hwnd:
+            client_point = wintypes.POINT(0, 0)
+            ctypes.windll.user32.ClientToScreen(self.hwnd, ctypes.byref(client_point))
+            return (client_point.x, client_point.y)
         raise ValueError("窗口句柄未设置")
 
     def bind_window(self):

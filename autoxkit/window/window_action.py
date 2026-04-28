@@ -136,7 +136,7 @@ class WindowAction:
 
         # 如果持续时间为0或步数小于等于1，直接移动到目标位置
         if duration <= 0 or steps <= 1:
-            lparam = self.verify_mouse_point(x, y)
+            lparam = self._verify_mouse_point(x, y)
             if use_post:
                 PostMessage(self.hwnd, WM_MOUSEMOVE, self.mouse_state, lparam)
             else:
@@ -156,7 +156,7 @@ class WindowAction:
             current_y = start_y + (y - start_y) * t
 
             # 创建消息参数
-            lparam = self.verify_mouse_point(int(current_x), int(current_y))
+            lparam = self._verify_mouse_point(int(current_x), int(current_y))
 
             # 发送鼠标移动消息
             if use_post:
@@ -172,7 +172,7 @@ class WindowAction:
         if not self.hwnd:
             raise ValueError("窗口句柄未设置")
 
-        lparam = self.verify_mouse_point(x, y)
+        lparam = self._verify_mouse_point(x, y)
         self.mouse_state |= MK_LBUTTON
 
         if use_post:
@@ -185,7 +185,7 @@ class WindowAction:
         if not self.hwnd:
             raise ValueError("窗口句柄未设置")
 
-        lparam = self.verify_mouse_point(x, y)
+        lparam = self._verify_mouse_point(x, y)
         self.mouse_state &= ~MK_LBUTTON
 
         if use_post:
@@ -204,7 +204,7 @@ class WindowAction:
         if not self.hwnd:
             raise ValueError("窗口句柄未设置")
 
-        lparam = self.verify_mouse_point(x, y)
+        lparam = self._verify_mouse_point(x, y)
         self.mouse_state |= MK_RBUTTON
 
         if use_post:
@@ -217,7 +217,7 @@ class WindowAction:
         if not self.hwnd:
             raise ValueError("窗口句柄未设置")
 
-        lparam = self.verify_mouse_point(x, y)
+        lparam = self._verify_mouse_point(x, y)
         self.mouse_state &= ~MK_RBUTTON
 
         if use_post:
@@ -236,7 +236,7 @@ class WindowAction:
         if not self.hwnd:
             raise ValueError("窗口句柄未设置")
 
-        lparam = self.verify_mouse_point(x, y)
+        lparam = self._verify_mouse_point(x, y)
         self.mouse_state |= MK_MBUTTON
 
         if use_post:
@@ -249,7 +249,7 @@ class WindowAction:
         if not self.hwnd:
             raise ValueError("窗口句柄未设置")
 
-        lparam = self.verify_mouse_point(x, y)
+        lparam = self._verify_mouse_point(x, y)
         self.mouse_state &= ~MK_MBUTTON
 
         if use_post:
@@ -295,7 +295,7 @@ class WindowAction:
         else:
             SendMessage(self.hwnd, WM_MOUSEWHEEL, wparam, lparam)
 
-    def verify_mouse_point(self, x: int=None, y: int=None):
+    def _verify_mouse_point(self, x: int=None, y: int=None):
         """验证鼠标位置"""
         if x is not None and y is not None:
             lparam = MAKELPARAM(x, y)

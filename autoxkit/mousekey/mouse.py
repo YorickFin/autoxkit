@@ -11,6 +11,7 @@ class Mouse:
 
     def __init__(self):
         """初始化鼠标控制器"""
+        self.mouse_point = tuple()
         self.screen_width = user32.GetSystemMetrics(0)
         self.screen_height = user32.GetSystemMetrics(1)
 
@@ -22,78 +23,122 @@ class Mouse:
         input_struct = Input(ctypes.c_ulong(0), ii_)
         SendInput(1, ctypes.pointer(input_struct), ctypes.sizeof(input_struct))
 
-    def left_down(self):
+    def _verify_mouse_point(self, x: int=None, y: int=None):
+        """验证鼠标坐标是否在屏幕范围内"""
+        if x is None or y is None:
+            if self.mouse_point:
+                x, y = self.mouse_point
+            else:
+                x, y = None, None
+        else:
+            self.mouse_point = (x, y)
+        return x, y
+
+    def left_down(self, x: int=None, y: int=None):
         """鼠标左键按下"""
+        x, y = self._verify_mouse_point(x, y)
+        if x is not None and y is not None:
+            self.mouse_move(x, y)
         self._mouse_action(HMC["LeftDown"])
 
-    def left_up(self):
+    def left_up(self, x: int=None, y: int=None):
         """鼠标左键释放"""
+        x, y = self._verify_mouse_point(x, y)
+        if x is not None and y is not None:
+            self.mouse_move(x, y)
         self._mouse_action(HMC["LeftUp"])
 
-    def left_click(self, delay: float=0.02):
+    def left_click(self, x: int=None, y: int=None, delay: float=0.02):
         """鼠标左键点击（可设置按下持续时间）"""
-        self.left_down()
+        self.left_down(x, y)
         time.sleep(delay)
-        self.left_up()
+        self.left_up(x, y)
 
-    def right_down(self):
+    def right_down(self, x: int=None, y: int=None):
         """鼠标右键按下"""
+        x, y = self._verify_mouse_point(x, y)
+        if x is not None and y is not None:
+            self.mouse_move(x, y)
         self._mouse_action(HMC["RightDown"])
 
-    def right_up(self):
+    def right_up(self, x: int=None, y: int=None):
         """鼠标右键释放"""
+        x, y = self._verify_mouse_point(x, y)
+        if x is not None and y is not None:
+            self.mouse_move(x, y)
         self._mouse_action(HMC["RightUp"])
 
-    def right_click(self, delay: float=0.02):
+    def right_click(self, x: int=None, y: int=None, delay: float=0.02):
         """鼠标右键点击（可设置按下持续时间）"""
-        self.right_down()
+        self.right_down(x, y)
         time.sleep(delay)
-        self.right_up()
+        self.right_up(x, y)
 
-    def middle_down(self):
+    def middle_down(self, x: int=None, y: int=None):
         """鼠标中键按下"""
+        x, y = self._verify_mouse_point(x, y)
+        if x is not None and y is not None:
+            self.mouse_move(x, y)
         self._mouse_action(HMC["MiddleDown"])
 
-    def middle_up(self):
+    def middle_up(self, x: int=None, y: int=None):
         """鼠标中键释放"""
+        x, y = self._verify_mouse_point(x, y)
+        if x is not None and y is not None:
+            self.mouse_move(x, y)
         self._mouse_action(HMC["MiddleUp"])
 
-    def middle_click(self, delay: float=0.02):
+    def middle_click(self, x: int=None, y: int=None, delay: float=0.02):
         """鼠标中键点击（可设置按下持续时间）"""
-        self.middle_down()
+        self.middle_down(x, y)
         time.sleep(delay)
-        self.middle_up()
+        self.middle_up(x, y)
 
-    def side1_down(self):
+    def side1_down(self, x: int=None, y: int=None):
         """鼠标侧键1（前进键）按下"""
+        x, y = self._verify_mouse_point(x, y)
+        if x is not None and y is not None:
+            self.mouse_move(x, y)
         self._mouse_action(HMC["XDown"], data=HMC["XButton1"])
 
-    def side1_up(self):
+    def side1_up(self, x: int=None, y: int=None):
         """鼠标侧键1（前进键）释放"""
-        self._mouse_action(HMC["XUp"], data=HMC["XButton1"])
+        x, y = self._verify_mouse_point(x, y)
+        if x is not None and y is not None:
+            self.mouse_move(x, y)
+        self._mouse_action(HMC["XButton1"])
 
-    def side1_click(self, delay: float=0.02):
+    def side1_click(self, x: int=None, y: int=None, delay: float=0.02):
         """鼠标侧键1点击（可设置按下持续时间）"""
-        self.side1_down()
+        self.side1_down(x, y)
         time.sleep(delay)
-        self.side1_up()
+        self.side1_up(x, y)
 
-    def side2_down(self):
+    def side2_down(self, x: int=None, y: int=None):
         """鼠标侧键2（后退键）按下"""
+        x, y = self._verify_mouse_point(x, y)
+        if x is not None and y is not None:
+            self.mouse_move(x, y)
         self._mouse_action(HMC["XDown"], data=HMC["XButton2"])
 
-    def side2_up(self):
+    def side2_up(self, x: int=None, y: int=None):
         """鼠标侧键2（后退键）释放"""
-        self._mouse_action(HMC["XUp"], data=HMC["XButton2"])
+        x, y = self._verify_mouse_point(x, y)
+        if x is not None and y is not None:
+            self.mouse_move(x, y)
+        self._mouse_action(HMC["XButton2"])
 
-    def side2_click(self, delay: float=0.02):
+    def side2_click(self, x: int=None, y: int=None, delay: float=0.02):
         """鼠标侧键2点击（可设置按下持续时间）"""
-        self.side2_down()
+        self.side2_down(x, y)
         time.sleep(delay)
-        self.side2_up()
+        self.side2_up(x, y)
 
-    def wheel_scroll(self, amount: int):
+    def wheel_scroll(self, amount: int, x: int=None, y: int=None):
         """垂直滚轮滚动（正值向上，负值向下）"""
+        x, y = self._verify_mouse_point(x, y)
+        if x is not None and y is not None:
+            self.mouse_move(x, y)
         self._mouse_action(HMC["Wheel"], data=amount * 10)
 
     def mouse_move(self, x: int, y: int, duration: float = 0.2, steps: int = 10):
@@ -103,6 +148,7 @@ class Mouse:
         duration: 移动总用时(秒)；
         steps: 移动拆分步数；
         """
+        x, y = self._verify_mouse_point(x, y)
         start_x, start_y = self.get_mouse_position()
 
         if duration <= 0 or steps <= 1:
