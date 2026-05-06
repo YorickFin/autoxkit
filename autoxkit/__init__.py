@@ -23,6 +23,9 @@ __all__ = [
 
     # 窗口控制
     "Window",
+
+    # 码表
+    "Hex_Key_Code", "Hex_Mouse_Code", "Hex_Hook_Code",
 ]
 
 
@@ -42,6 +45,10 @@ class _LazyModule(ModuleType):
         "MatchImage": ("autoxkit.icmatch", "MatchImage"),
         # window 模块
         "Window": ("autoxkit.window", "Window"),
+        # constants 模块
+        "Hex_Key_Code": ("autoxkit.constants", "Hex_Key_Code"),
+        "Hex_Mouse_Code": ("autoxkit.constants", "Hex_Mouse_Code"),
+        "Hex_Hook_Code": ("autoxkit.constants", "Hex_Hook_Code"),
     }
 
     def __getattr__(self, name: str):

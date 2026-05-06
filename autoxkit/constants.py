@@ -37,7 +37,7 @@ Hex_Mouse_Code = {
     "LeftDown": 0x0002, "LeftUp": 0x0004,
     "RightDown": 0x0008, "RightUp": 0x0010,
     "MiddleDown": 0x0020, "MiddleUp": 0x0040,
-    "XDown": 0x0080, "XUp": 0x0100, "XButton1": 0x0001, "XButton2": 0x0002,
+    "XDown": 0x0080, "XUp": 0x0100, "side1": 0x0001, "side2": 0x0002,
 }
 
 # Hook16进制码表
@@ -48,6 +48,6 @@ Hex_Hook_Code = {
     "LeftDown": 0x0201, "LeftUp": 0x0202,
     "RightDown": 0x0204, "RightUp": 0x0205,
     "MiddleDown": 0x0207, "MiddleUp": 0x0208,
-    "XDown": 0x020B, "XUp": 0x020C, "XButton1": 0x0001, "XButton2": 0x0002,
+    "XDown": 0x020B, "XUp": 0x020C, "side1": 0x0001, "side2": 0x0002,
     "PM_REMOVE": 0x0001,
 }

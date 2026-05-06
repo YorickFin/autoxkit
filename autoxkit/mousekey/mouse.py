@@ -99,14 +99,14 @@ class Mouse:
         x, y = self._verify_mouse_point(x, y)
         if x is not None and y is not None:
             self.mouse_move(x, y)
-        self._mouse_action(HMC["XDown"], data=HMC["XButton1"])
+        self._mouse_action(HMC["XDown"], data=HMC["side1"])
 
     def side1_up(self, x: int=None, y: int=None):
         """鼠标侧键1（前进键）释放"""
         x, y = self._verify_mouse_point(x, y)
         if x is not None and y is not None:
             self.mouse_move(x, y)
-        self._mouse_action(HMC["XButton1"])
+        self._mouse_action(HMC["XUp"], data=HMC["side1"])
 
     def side1_click(self, x: int=None, y: int=None, delay: float=0.02):
         """鼠标侧键1点击（可设置按下持续时间）"""
@@ -119,14 +119,14 @@ class Mouse:
         x, y = self._verify_mouse_point(x, y)
         if x is not None and y is not None:
             self.mouse_move(x, y)
-        self._mouse_action(HMC["XDown"], data=HMC["XButton2"])
+        self._mouse_action(HMC["XDown"], data=HMC["side2"])
 
     def side2_up(self, x: int=None, y: int=None):
         """鼠标侧键2（后退键）释放"""
         x, y = self._verify_mouse_point(x, y)
         if x is not None and y is not None:
             self.mouse_move(x, y)
-        self._mouse_action(HMC["XButton2"])
+        self._mouse_action(HMC["XUp"], data=HMC["side2"])
 
     def side2_click(self, x: int=None, y: int=None, delay: float=0.02):
         """鼠标侧键2点击（可设置按下持续时间）"""
