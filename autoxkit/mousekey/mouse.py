@@ -39,14 +39,14 @@ class Mouse:
         x, y = self._verify_mouse_point(x, y)
         if x is not None and y is not None:
             self.mouse_move(x, y)
-        self._mouse_action(HMC["LeftDown"])
+        self._mouse_action(HMC["MLeftDown"])
 
     def left_up(self, x: int=None, y: int=None):
         """鼠标左键释放"""
         x, y = self._verify_mouse_point(x, y)
         if x is not None and y is not None:
             self.mouse_move(x, y)
-        self._mouse_action(HMC["LeftUp"])
+        self._mouse_action(HMC["MLeftUp"])
 
     def left_click(self, x: int=None, y: int=None, delay: float=0.02):
         """鼠标左键点击（可设置按下持续时间）"""
@@ -59,14 +59,14 @@ class Mouse:
         x, y = self._verify_mouse_point(x, y)
         if x is not None and y is not None:
             self.mouse_move(x, y)
-        self._mouse_action(HMC["RightDown"])
+        self._mouse_action(HMC["MRightDown"])
 
     def right_up(self, x: int=None, y: int=None):
         """鼠标右键释放"""
         x, y = self._verify_mouse_point(x, y)
         if x is not None and y is not None:
             self.mouse_move(x, y)
-        self._mouse_action(HMC["RightUp"])
+        self._mouse_action(HMC["MRightUp"])
 
     def right_click(self, x: int=None, y: int=None, delay: float=0.02):
         """鼠标右键点击（可设置按下持续时间）"""

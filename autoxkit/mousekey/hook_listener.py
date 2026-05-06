@@ -176,7 +176,7 @@ class HookListener:
                 ms = ctypes.cast(lParam, POINTER(MSLLHOOKSTRUCT)).contents
                 x, y = ms.pt.x, ms.pt.y
 
-                if wParam in (HHC["LeftDown"], HHC["RightDown"], HHC["MiddleDown"], HHC["XDown"]):
+                if wParam in (HHC["MLeftDown"], HHC["MRightDown"], HHC["MiddleDown"], HHC["XDown"]):
                     button = self._get_mouse_button(wParam, ms.mouseData)
                     event = MouseEvent("MouseDown", button, x, y)
                     for cb in self._on_mousedown:
@@ -187,7 +187,7 @@ class HookListener:
                         except Exception as e:
                             raise e
 
-                elif wParam in (HHC["LeftUp"], HHC["RightUp"], HHC["MiddleUp"], HHC["XUp"]):
+                elif wParam in (HHC["MLeftUp"], HHC["MRightUp"], HHC["MiddleUp"], HHC["XUp"]):
                     button = self._get_mouse_button(wParam, ms.mouseData)
                     event = MouseEvent("MouseUp", button, x, y)
                     for cb in self._on_mouseup:
@@ -204,10 +204,10 @@ class HookListener:
 
     # 辅助函数：获取鼠标按键名称
     def _get_mouse_button(self, wParam, mouseData):
-        if wParam in (HHC["LeftDown"], HHC["LeftUp"]):
-            return 'Left'
-        elif wParam in (HHC["RightDown"], HHC["RightUp"]):
-            return 'Right'
+        if wParam in (HHC["MLeftDown"], HHC["MLeftUp"]):
+            return 'MLeft'
+        elif wParam in (HHC["MRightDown"], HHC["MRightUp"]):
+            return 'MRight'
         elif wParam in (HHC["MiddleDown"], HHC["MiddleUp"]):
             return 'Middle'
         elif wParam in (HHC["XDown"], HHC["XUp"]):

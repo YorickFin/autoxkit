@@ -34,8 +34,8 @@ Hex_Key_Code = {
 # 鼠标16进制码表
 Hex_Mouse_Code = {
     "Move": 0x0001, "Wheel": 0x0800,
-    "LeftDown": 0x0002, "LeftUp": 0x0004,
-    "RightDown": 0x0008, "RightUp": 0x0010,
+    "MLeftDown": 0x0002, "MLeftUp": 0x0004,
+    "MRightDown": 0x0008, "MRightUp": 0x0010,
     "MiddleDown": 0x0020, "MiddleUp": 0x0040,
     "XDown": 0x0080, "XUp": 0x0100, "side1": 0x0001, "side2": 0x0002,
 }
@@ -45,8 +45,8 @@ Hex_Hook_Code = {
     "Key_LL": 0x000D,
     "KeyDown": 0x0100, "KeyUp": 0x0101, "SysKeyDown": 0x0104, "SysKeyUp": 0x0105,
     "Mouse_LL": 0x000E,
-    "LeftDown": 0x0201, "LeftUp": 0x0202,
-    "RightDown": 0x0204, "RightUp": 0x0205,
+    "MLeftDown": 0x0201, "MLeftUp": 0x0202,
+    "MRightDown": 0x0204, "MRightUp": 0x0205,
     "MiddleDown": 0x0207, "MiddleUp": 0x0208,
     "XDown": 0x020B, "XUp": 0x020C, "side1": 0x0001, "side2": 0x0002,
     "PM_REMOVE": 0x0001,
