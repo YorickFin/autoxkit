@@ -42,6 +42,10 @@ MK_LBUTTON = 0x0001
 MK_RBUTTON = 0x0002
 MK_MBUTTON = 0x0010
 
+# 定义窗口激活消息常量
+WM_ACTIVATE = 0x0006
+WA_ACTIVE = 1
+
 # 定义坐标转换宏
 MAKELPARAM = lambda x, y: (y << 16) | (x & 0xFFFF)  # noqa: E731
 
@@ -59,7 +63,18 @@ class WindowAction:
         self.mouse_point = tuple()
         self.mouse_state = 0
 
-    def send_key_down(self, key_name: str, use_post: bool = False):
+    def send_activate_message(self, use_post=False):
+        """发送虚拟激活消息，让窗口认为自己被激活"""
+        if not self.hwnd:
+            raise ValueError("窗口句柄未设置")
+
+        if use_post:
+            PostMessage(self.hwnd, WM_ACTIVATE, WA_ACTIVE, 0)
+        else:
+            SendMessage(self.hwnd, WM_ACTIVATE, WA_ACTIVE, 0)
+        time.sleep(0.02)  # 等待窗口处理激活消息
+
+    def send_key_down(self, key_name: str, use_post=False):
         """发送按键按下消息"""
         if not self.hwnd:
             raise ValueError("窗口句柄未设置")
@@ -67,13 +82,13 @@ class WindowAction:
         vk = HKC[key_name]
         scan = MapVirtualKey(vk, 0)
         lparam = (scan << 16) | 1
-
+        self.send_activate_message(use_post)
         if use_post:
             PostMessage(self.hwnd, WM_KEYDOWN, vk, lparam)
         else:
             SendMessage(self.hwnd, WM_KEYDOWN, vk, lparam)
 
-    def send_key_up(self, key_name: str, use_post: bool = False):
+    def send_key_up(self, key_name: str, use_post=False):
         """发送按键释放消息"""
         if not self.hwnd:
             raise ValueError("窗口句柄未设置")
@@ -81,19 +96,19 @@ class WindowAction:
         vk = HKC[key_name]
         scan = MapVirtualKey(vk, 0)
         lparam = (scan << 16) | 0xC0000001
-
+        self.send_activate_message(use_post)
         if use_post:
             PostMessage(self.hwnd, WM_KEYUP, vk, lparam)
         else:
             SendMessage(self.hwnd, WM_KEYUP, vk, lparam)
 
-    def send_key_click(self, key_name: str, delay: float = 0.02, use_post: bool = False):
+    def send_key_click(self, key_name: str, delay: float = 0.02, use_post=False):
         """发送按键点击消息（按下+释放）"""
         self.send_key_down(key_name, use_post)
         time.sleep(delay)
         self.send_key_up(key_name, use_post)
 
-    def send_key_combination(self, keys: list, use_post: bool = False):
+    def send_key_combination(self, keys: list, use_post=False):
         """发送组合键消息"""
         for key in keys:
             self.send_key_down(key, use_post)
@@ -103,11 +118,12 @@ class WindowAction:
             self.send_key_up(key, use_post)
             time.sleep(0.01)
 
-    def send_text(self, char: str, use_post: bool = False):
+    def send_text(self, char: str, use_post=False):
         """发送文本消息"""
         if not self.hwnd:
             raise ValueError("窗口句柄未设置")
 
+        self.send_activate_message(use_post)
         for c in char:
             if use_post:
                 PostMessage(self.hwnd, WM_CHAR, ord(c), 0)
@@ -115,7 +131,7 @@ class WindowAction:
                 SendMessage(self.hwnd, WM_CHAR, ord(c), 0)
             time.sleep(0.02)
 
-    def send_mouse_move(self, x: int=None, y: int=None, duration: float = 0.2, steps: int = 10, use_post: bool = False):
+    def send_mouse_move(self, x: int=None, y: int=None, duration: float = 0.2, steps: int = 10, use_post=False):
         """
             发送鼠标移动消息
         Args:
@@ -133,6 +149,8 @@ class WindowAction:
             start_x, start_y = self.mouse_point
         else:
             start_x, start_y = x, y
+
+        self.send_activate_message(use_post)
 
         # 如果持续时间为0或步数小于等于1，直接移动到目标位置
         if duration <= 0 or steps <= 1:
@@ -167,7 +185,7 @@ class WindowAction:
             # 等待一段时间
             time.sleep(step_interval)
 
-    def send_left_down(self, x: int=None, y: int=None, use_post: bool = False):
+    def send_left_down(self, x: int=None, y: int=None, use_post=False):
         """发送鼠标左键按下消息"""
         if not self.hwnd:
             raise ValueError("窗口句柄未设置")
@@ -175,12 +193,13 @@ class WindowAction:
         lparam = self._verify_mouse_point(x, y)
         self.mouse_state |= MK_LBUTTON
 
+        self.send_activate_message(use_post)
         if use_post:
             PostMessage(self.hwnd, WM_LBUTTONDOWN, MK_LBUTTON, lparam)
         else:
             SendMessage(self.hwnd, WM_LBUTTONDOWN, MK_LBUTTON, lparam)
 
-    def send_left_up(self, x: int=None, y: int=None, use_post: bool = False):
+    def send_left_up(self, x: int=None, y: int=None, use_post=False):
         """发送鼠标左键释放消息"""
         if not self.hwnd:
             raise ValueError("窗口句柄未设置")
@@ -188,18 +207,19 @@ class WindowAction:
         lparam = self._verify_mouse_point(x, y)
         self.mouse_state &= ~MK_LBUTTON
 
+        self.send_activate_message(use_post)
         if use_post:
             PostMessage(self.hwnd, WM_LBUTTONUP, 0, lparam)
         else:
             SendMessage(self.hwnd, WM_LBUTTONUP, 0, lparam)
 
-    def send_left_click(self, x: int=None, y: int=None, delay: float = 0.02, use_post: bool = False):
+    def send_left_click(self, x: int=None, y: int=None, delay: float = 0.02, use_post=False):
         """发送鼠标左键点击消息"""
         self.send_left_down(x, y, use_post)
         time.sleep(delay)
         self.send_left_up(x, y, use_post)
 
-    def send_right_down(self, x: int=None, y: int=None, use_post: bool = False):
+    def send_right_down(self, x: int=None, y: int=None, use_post=False):
         """发送鼠标右键按下消息"""
         if not self.hwnd:
             raise ValueError("窗口句柄未设置")
@@ -207,12 +227,13 @@ class WindowAction:
         lparam = self._verify_mouse_point(x, y)
         self.mouse_state |= MK_RBUTTON
 
+        self.send_activate_message(use_post)
         if use_post:
             PostMessage(self.hwnd, WM_RBUTTONDOWN, MK_RBUTTON, lparam)
         else:
             SendMessage(self.hwnd, WM_RBUTTONDOWN, MK_RBUTTON, lparam)
 
-    def send_right_up(self, x: int=None, y: int=None, use_post: bool = False):
+    def send_right_up(self, x: int=None, y: int=None, use_post=False):
         """发送鼠标右键释放消息"""
         if not self.hwnd:
             raise ValueError("窗口句柄未设置")
@@ -220,18 +241,19 @@ class WindowAction:
         lparam = self._verify_mouse_point(x, y)
         self.mouse_state &= ~MK_RBUTTON
 
+        self.send_activate_message(use_post)
         if use_post:
             PostMessage(self.hwnd, WM_RBUTTONUP, 0, lparam)
         else:
             SendMessage(self.hwnd, WM_RBUTTONUP, 0, lparam)
 
-    def send_right_click(self, x: int=None, y: int=None, delay: float = 0.02, use_post: bool = False):
+    def send_right_click(self, x: int=None, y: int=None, delay: float = 0.02, use_post=False):
         """发送鼠标右键点击消息"""
         self.send_right_down(x, y, use_post)
         time.sleep(delay)
         self.send_right_up(x, y, use_post)
 
-    def send_middle_down(self, x: int=None, y: int=None, use_post: bool = False):
+    def send_middle_down(self, x: int=None, y: int=None, use_post=False):
         """发送鼠标中键按下消息"""
         if not self.hwnd:
             raise ValueError("窗口句柄未设置")
@@ -239,12 +261,13 @@ class WindowAction:
         lparam = self._verify_mouse_point(x, y)
         self.mouse_state |= MK_MBUTTON
 
+        self.send_activate_message(use_post)
         if use_post:
             PostMessage(self.hwnd, WM_MBUTTONDOWN, MK_MBUTTON, lparam)
         else:
             SendMessage(self.hwnd, WM_MBUTTONDOWN, MK_MBUTTON, lparam)
 
-    def send_middle_up(self, x: int=None, y: int=None, use_post: bool = False):
+    def send_middle_up(self, x: int=None, y: int=None, use_post=False):
         """发送鼠标中键释放消息"""
         if not self.hwnd:
             raise ValueError("窗口句柄未设置")
@@ -252,24 +275,24 @@ class WindowAction:
         lparam = self._verify_mouse_point(x, y)
         self.mouse_state &= ~MK_MBUTTON
 
+        self.send_activate_message(use_post)
         if use_post:
             PostMessage(self.hwnd, WM_MBUTTONUP, 0, lparam)
         else:
             SendMessage(self.hwnd, WM_MBUTTONUP, 0, lparam)
 
-    def send_middle_click(self, x: int=None, y: int=None, delay: float = 0.02, use_post: bool = False):
+    def send_middle_click(self, x: int=None, y: int=None, delay: float = 0.02, use_post=False):
         """发送鼠标中键点击消息"""
         self.send_middle_down(x, y, use_post)
         time.sleep(delay)
         self.send_middle_up(x, y, use_post)
 
-    def send_mouse_wheel(self, delta: int, use_post: bool = False):
+    def send_mouse_wheel(self, delta: int, use_post=False):
         """
             发送鼠标滚轮消息（正值向上，负值向下）
         Args:
             delta: 滚动值（正值向上，负值向下）
             use_post: 是否使用PostMessage
-            activate_window: 是否在发送消息前激活窗口
         """
         if not self.hwnd:
             raise ValueError("窗口句柄未设置")
@@ -285,6 +308,7 @@ class WindowAction:
             x = (rect.left + rect.right) // 2
             y = (rect.top + rect.bottom) // 2
 
+        self.send_activate_message(use_post)
         # 确保使用屏幕坐标
         lparam = MAKELPARAM(x, y)
         # 高16位是滚轮滚动量，低16位是鼠标状态

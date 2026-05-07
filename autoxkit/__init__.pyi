@@ -1,4 +1,4 @@
-from autoxkit.mousekey import (
+from .mousekey import (
     Mouse,
     KeyBoard,
     HookListener,
@@ -6,12 +6,16 @@ from autoxkit.mousekey import (
     MouseEvent,
     HotkeyListener
 )
-from autoxkit.icmatch import (
+from .icmatch import (
     MatchColor,
     MatchImage
 )
-from autoxkit.window import (
+from .window import (
     Window
+)
+
+from .constants import (
+    Hex_Key_Code, Hex_Mouse_Code, Hex_Hook_Code
 )
 
 
@@ -25,5 +29,8 @@ __all__ = [
     "HotkeyListener",
     "MatchColor",
     "MatchImage",
-    "Window"
+    "Window",
+    "Hex_Key_Code",
+    "Hex_Mouse_Code",
+    "Hex_Hook_Code"
 ]

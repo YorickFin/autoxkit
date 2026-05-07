@@ -23,7 +23,7 @@ class Window(WindowAction, WindowMatch):
                 WindowMatch.__init__(self, self.hwnd)
 
     def activate_window(self):
-        """激活窗口, 并将其强制前台显示"""
+        """激活窗口到前台显示"""
         if self.hwnd:
             # 获取一级父窗口句柄
             current_hwnd = self.hwnd

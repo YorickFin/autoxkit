@@ -34,21 +34,21 @@ class _LazyModule(ModuleType):
 
     _MODULE_MAPPING = {
         # mousekey 模块
-        "Mouse": ("autoxkit.mousekey", "Mouse"),
-        "KeyBoard": ("autoxkit.mousekey", "KeyBoard"),
-        "HookListener": ("autoxkit.mousekey", "HookListener"),
-        "KeyEvent": ("autoxkit.mousekey", "KeyEvent"),
-        "MouseEvent": ("autoxkit.mousekey", "MouseEvent"),
-        "HotkeyListener": ("autoxkit.mousekey", "HotkeyListener"),
+        "Mouse": (".mousekey", "Mouse"),
+        "KeyBoard": (".mousekey", "KeyBoard"),
+        "HookListener": (".mousekey", "HookListener"),
+        "KeyEvent": (".mousekey", "KeyEvent"),
+        "MouseEvent": (".mousekey", "MouseEvent"),
+        "HotkeyListener": (".mousekey", "HotkeyListener"),
         # icmatch 模块
-        "MatchColor": ("autoxkit.icmatch", "MatchColor"),
-        "MatchImage": ("autoxkit.icmatch", "MatchImage"),
+        "MatchColor": (".icmatch", "MatchColor"),
+        "MatchImage": (".icmatch", "MatchImage"),
         # window 模块
-        "Window": ("autoxkit.window", "Window"),
+        "Window": (".window", "Window"),
         # constants 模块
-        "Hex_Key_Code": ("autoxkit.constants", "Hex_Key_Code"),
-        "Hex_Mouse_Code": ("autoxkit.constants", "Hex_Mouse_Code"),
-        "Hex_Hook_Code": ("autoxkit.constants", "Hex_Hook_Code"),
+        "Hex_Key_Code": (".constants", "Hex_Key_Code"),
+        "Hex_Mouse_Code": (".constants", "Hex_Mouse_Code"),
+        "Hex_Hook_Code": (".constants", "Hex_Hook_Code"),
     }
 
     def __getattr__(self, name: str):
