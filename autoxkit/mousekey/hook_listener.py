@@ -104,6 +104,15 @@ class HookListener:
 
     # 注册回调
     def add_handler(self, event_type: str, func):
+        """
+            注册回调
+        Args:
+            event_type (str): 事件类型，可选值为 "keydown"、"keyup"、"mousedown"、"mouseup"
+            func (callable): 回调函数，参数为 KeyEvent 或 MouseEvent 对象
+        """
+        if not callable(func):
+            raise ValueError("func must be a callable object")
+
         if event_type == "keydown":
             self._on_keydown.append(func)
         elif event_type == "keyup":
@@ -117,6 +126,15 @@ class HookListener:
 
     # 移除回调（可选）
     def remove_handler(self, event_type: str, func):
+        """
+            移除回调
+        Args:
+            event_type (str): 事件类型，可选值为 "keydown"、"keyup"、"mousedown"、"mouseup"
+            func (callable): 回调函数，参数为 KeyEvent 或 MouseEvent 对象
+        """
+        if not callable(func):
+            raise ValueError("func must be a callable object")
+
         target = None
         if event_type == "keydown":
             target = self._on_keydown
@@ -135,6 +153,11 @@ class HookListener:
 
     # 获取当前鼠标位置
     def get_mouse_position(self):
+        """
+            获取当前鼠标位置
+        Returns:
+            tuple[int, int]: 鼠标位置 (x, y)
+        """
         pt = wintypes.POINT()
         if user32.GetCursorPos(byref(pt)):
             return (pt.x, pt.y)

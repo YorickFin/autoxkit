@@ -70,7 +70,11 @@ class WindowMatch:
 
     def read_image(self, image_path: str) -> np.ndarray:
         """
-        读取图像
+            读取图像
+        Args:
+            image_path (str): 图像文件路径
+        Returns:
+            np.ndarray: 图像的 numpy 数组表示
         """
         image_path = Path(image_path)
         if not image_path.exists():
@@ -79,7 +83,10 @@ class WindowMatch:
 
     def save_image(self, image: np.ndarray, image_path: str) -> None:
         """
-        保存图像
+            保存图像
+        Args:
+            image (np.ndarray): 图像的 numpy 数组表示
+            image_path (str): 图像保存路径
         """
         image_path = Path(image_path).absolute()
         if not image_path.parent.is_dir():
@@ -88,8 +95,7 @@ class WindowMatch:
 
     def screenshot(self, save_path: str = None, rect: tuple[int, int, int, int] = None) -> np.ndarray:
         """
-        截图:
-            对 self.hwnd 窗口进行区域或完全截图
+            截图
         Args:
             save_path (str, None): 截图保存路径，包含自定义文件名。
             rect (tuple, None): 矩形区域元组，应包含 (x1, y1, x2, y2)，相对于窗口左上角。
@@ -125,11 +131,11 @@ class WindowMatch:
 
     def _is_black_image(self, img_array: np.ndarray, threshold: int = 10, ratio: float = 0.95) -> bool:
         """
-        检查图像是否为纯黑或接近纯黑
+            检查图像是否为纯黑或接近纯黑
         Args:
-            img_array: 图像数组
-            threshold: 像素值阈值，低于此值视为黑色像素
-            ratio: 黑色像素比例阈值，超过此比例认为是纯黑图像
+            img_array (np.ndarray): 图像数组
+            threshold (int): 像素值阈值，低于此值视为黑色像素
+            ratio (float): 黑色像素比例阈值，超过此比例认为是纯黑图像
         Returns:
             bool: 如果黑色像素比例超过阈值，返回True
         """
@@ -254,7 +260,7 @@ class WindowMatch:
             # 确定截图区域
             if rect is None:
                 # 截取整个客户区窗口
-                x, y, width, height = 0 + client_offset_x, 0 + client_offset_y, client_rect.right, client_rect.bottom
+                x, y, width, height = client_offset_x, client_offset_y, client_rect.right, client_rect.bottom
             else:
                 # 截取指定区域（相对于客户区）
                 rect = RectTuple(*rect)
@@ -332,10 +338,10 @@ class WindowMatch:
 
     def get_pixel_color(self, x: int, y: int, is_return_hex: bool = False) -> str | tuple:
         """
-            获取屏幕坐标 (x, y) 处的颜色
+            获取窗口坐标 (x, y) 处的颜色
         Args:
-            x (int): 屏幕坐标 x 轴
-            y (int): 屏幕坐标 y 轴
+            x (int): 窗口坐标 x 轴
+            y (int): 窗口坐标 y 轴
             is_return_hex (bool, optional): 是否返回十六进制字符串。默认 False。
         Returns:
             str | tuple: 十六进制格式字符串，如 #FFAABB 或 (r, g, b) 元组
@@ -353,9 +359,8 @@ class WindowMatch:
         """
             匹配颜色
         Args:
-            (source_color and target_color):
-                str: 颜色十六进制字符串， tuple: (r, g, b) | (x, y)
-
+            source_color (str | tuple): 源颜色 (str: 颜色十六进制字符串， tuple: (r, g, b) | (x, y))
+            target_color (str | tuple): 目标颜色 (str: 颜色十六进制字符串， tuple: (r, g, b) | (x, y))
             similarity (float): 相似度阈值，取值范围 0.0 ~ 1.0，越接近 1 越严格。默认值为 0.8。
         Returns:
             tuple: bool(True | False), float(相似度结果值)

@@ -36,7 +36,11 @@ class Window(WindowAction, WindowMatch):
 
     @property
     def client_size(self) -> tuple:
-        """返回窗口客户区大小"""
+        """
+            返回窗口客户区大小
+        Returns:
+            tuple: (width, height) 元组，width 为窗口客户区宽度，height 为窗口客户区高度
+        """
         if self.hwnd:
             rect = RECT()
             user32.GetClientRect(self.hwnd, ctypes.byref(rect))
@@ -45,7 +49,11 @@ class Window(WindowAction, WindowMatch):
 
     @property
     def client_position(self) -> tuple:
-        """返回窗口客户区位置"""
+        """
+            返回窗口客户区位置
+        Returns:
+            tuple: (x, y) 元组，x 为窗口客户区左上角 x 轴坐标，y 为窗口客户区左上角 y 轴坐标
+        """
         if self.hwnd:
             client_point = wintypes.POINT(0, 0)
             ctypes.windll.user32.ClientToScreen(self.hwnd, ctypes.byref(client_point))

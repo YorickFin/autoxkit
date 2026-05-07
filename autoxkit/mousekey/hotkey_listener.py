@@ -5,10 +5,13 @@ from .hook_listener import HookListener, KeyEvent, Hex_Key_Code
 
 
 class HotkeyListener:
+    """
+        快捷键监听器
+    Args:
+        timeout (float): 组合键按下的最大时间窗口，默认2秒
+    """
+
     def __init__(self, timeout=2.0):
-        """
-        :param timeout: 组合键按下的最大时间窗口，默认2秒
-        """
         self.timeout = timeout
         self.hotkeys = {}  # name -> {"keys": [...], "func": func}
         self.current_keys = []  # 当前按下的顺序
@@ -20,21 +23,37 @@ class HotkeyListener:
         self.hook_listener.add_handler("keyup", self._on_keyup)
         self.hook_listener.start()
 
-    def _key_in_hex_codes(self, key):
+    def _key_in_hex_codes(self, key: str):
         """判断按键是否存在于Hex_Key_Code中"""
         if key in Hex_Key_Code:
             return True
         raise ValueError(f"key not found in Hex_Key_Code: {key}")
 
-    def register_hotkey(self, name, keys, func):
-        """注册快捷键"""
+    def add_hotkey(self, name: str, keys: list, func):
+        """
+            注册快捷键
+        Args:
+            name (str): 快捷键名称
+            keys (list): 快捷键组合，例如 ["Ctrl", "A"]
+            func (callable): 触发函数
+        Returns:
+            str: 注册成功信息
+        """
         vk_codes = [Hex_Key_Code[k] for k in keys if self._key_in_hex_codes(k)]
         with self.lock:
             self.hotkeys[name] = {"keys": vk_codes, "func": func}
         return f"successful registration of hotkey: {name}, keys: {keys}, func: {func}"
 
-    def update_hotkey(self, name, keys=None, func=None):
-        """根据名称修改快捷键或触发函数"""
+    def update_hotkey(self, name: str, keys: list = None, func=None):
+        """
+            根据名称修改快捷键或触发函数
+        Args:
+            name (str): 快捷键名称
+            keys (list): 新的快捷键组合，例如 ["Ctrl", "A"]
+            func (callable): 新的触发函数
+        Returns:
+            str: 修改成功信息
+        """
         with self.lock:
             if name not in self.hotkeys:
                 raise ValueError(f"name not found in hotkeys: {name}")
@@ -44,8 +63,14 @@ class HotkeyListener:
                 self.hotkeys[name]["func"] = func
             return f"successful update of hotkey: {name}, keys: {self.hotkeys[name]['keys']}, func: {self.hotkeys[name]['func']}"
 
-    def unregister_hotkey(self, name):
-        """根据名称注销快捷键"""
+    def remove_hotkey(self, name: str):
+        """
+            根据名称注销快捷键
+        Args:
+            name (str): 快捷键名称
+        Returns:
+            str: 注销成功信息
+        """
         with self.lock:
             if name in self.hotkeys:
                 del self.hotkeys[name]

@@ -41,7 +41,11 @@ class MatchImage:
 
     def read_image(self, image_path: str) -> np.ndarray:
         """
-        读取图像
+            读取图像
+        Args:
+            image_path (str): 图像文件路径
+        Returns:
+            np.ndarray: 图像的 numpy 数组表示
         """
         image_path = Path(image_path)
         if not image_path.exists():
@@ -50,7 +54,10 @@ class MatchImage:
 
     def save_image(self, image: np.ndarray, image_path: str) -> None:
         """
-        保存图像
+            保存图像
+        Args:
+            image (np.ndarray): 图像的 numpy 数组表示
+            image_path (str): 图像文件路径
         """
         image_path = Path(image_path).absolute()
         if not image_path.parent.is_dir():
@@ -59,11 +66,10 @@ class MatchImage:
 
     def screenshot(self, rect: tuple[int, int, int, int], save_path: str=None) -> np.ndarray:
         """
-            截图:
-                获取显示器 rect 区域的图像
+            截图
         Args:
             rect (tuple): 矩形区域元组，应包含 (x1, y1, x2, y2)。
-            save_path (str, optional): 截图保存路径，包含自定义文件名。
+            save_path (str): 截图保存路径，包含自定义文件名。
         Returns:
             np.ndarray: 截图图像的 numpy 数组表示。
         """
