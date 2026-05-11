@@ -1,7 +1,8 @@
 # hotkey_listener.py
 import time
 import threading
-from .hook_listener import KeyEvent, Hex_Key_Code
+from .event import KeyEvent
+from ..constants import Hex_Key_Code
 
 
 class HotkeyListener:

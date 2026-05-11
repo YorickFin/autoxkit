@@ -1,4 +1,4 @@
-from autoxkit import HookListener, HotkeyListener
+from autoxkit.hook import HookListener, HotkeyListener
 
 def save_func():
     print("保存 - Ctrl+S 触发")

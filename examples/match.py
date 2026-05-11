@@ -1,6 +1,6 @@
-from autoxkit import MatchColor
-from autoxkit import MatchImage
-from autoxkit import Mouse
+from autoxkit.icmatch import MatchColor
+from autoxkit.icmatch import MatchImage
+from autoxkit.mousekey import Mouse
 
 def match_color_example():
     match_color = MatchColor()

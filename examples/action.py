@@ -1,9 +1,9 @@
-from autoxkit import Mouse, KeyBoard
+from autoxkit.mousekey import Mouse, KeyBoard
 
 
 def mouse_action():
     mouse = Mouse()
-    mouse.left_click()
+    mouse.mouse_click(x=1270, y=540, button=0)
 
 def keyboard_action():
     keyboard = KeyBoard()
@@ -12,6 +12,6 @@ def keyboard_action():
     keyboard.key_combination(["Rshift", "Oem_11"])
 
 if __name__ == '__main__':
-    # mouse_action()
-    keyboard_action()
+    mouse_action()
+    # keyboard_action()
 

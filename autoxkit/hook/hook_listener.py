@@ -3,9 +3,9 @@
 import ctypes
 from ctypes import wintypes, Structure, POINTER, CFUNCTYPE, byref
 import threading
-from ..constants import Hex_Key_Code, Hex_Hook_Code
+from .event import KeyEvent, MouseEvent
+from ..constants import Hex_Hook_Code
 
-HKC = Hex_Key_Code
 HHC = Hex_Hook_Code
 
 # ---------- 结构体定义 ----------
@@ -26,20 +26,6 @@ class MSLLHOOKSTRUCT(Structure):
         ("time", wintypes.DWORD),
         ("dwExtraInfo", ctypes.c_size_t),
     ]
-
-# ---------- 事件对象 ----------
-class KeyEvent:
-    def __init__(self, action, vk_code):
-        self.action = action
-        self.key_code = vk_code
-        name = next((k for k, v in HKC.items() if v == vk_code), None)
-        self.key_name = name if name else str(vk_code)
-
-class MouseEvent:
-    def __init__(self, action, button, x, y):
-        self.action = action
-        self.button = button
-        self.position = (x, y)
 
 # ---------- 回调类型 ----------
 HOOKPROC = CFUNCTYPE(ctypes.c_long, ctypes.c_int, wintypes.WPARAM, wintypes.LPARAM)
