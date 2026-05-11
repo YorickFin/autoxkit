@@ -1,5 +1,5 @@
 import time
-from autoxkit.window import Window
+from autoxkit import Window
 
 def window_match():
     # 绑定窗口，指定窗口标题和类名（可单选一）

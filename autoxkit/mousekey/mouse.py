@@ -5,6 +5,7 @@ from .input import Input_I, Input, MouseInput
 from ..constants import Hex_Mouse_Code as HMC
 
 user32 = ctypes.windll.user32
+point = ctypes.wintypes.POINT()
 SendInput = user32.SendInput
 
 class Mouse:
@@ -132,7 +133,6 @@ class Mouse:
         Returns:
             tuple[int, int]: 鼠标当前位置的 (X, Y) 坐标
         """
-        point = ctypes.wintypes.POINT()
         if user32.GetCursorPos(ctypes.byref(point)):
             return point.x, point.y
         else:

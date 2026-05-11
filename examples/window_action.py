@@ -1,5 +1,5 @@
 import time
-from autoxkit.window import Window
+from autoxkit import Window
 
 def window_action():
     """键鼠操作"""

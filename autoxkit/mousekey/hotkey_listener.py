@@ -1,7 +1,7 @@
 # hotkey_listener.py
 import time
 import threading
-from .hook_listener import HookListener, KeyEvent, Hex_Key_Code
+from .hook_listener import KeyEvent, Hex_Key_Code
 
 
 class HotkeyListener:
@@ -11,17 +11,16 @@ class HotkeyListener:
         timeout (float): 组合键按下的最大时间窗口，默认2秒
     """
 
-    def __init__(self, timeout=2.0):
+    def __init__(self, hook_listener, timeout=2.0):
         self.timeout = timeout
         self.hotkeys = {}  # name -> {"keys": [...], "func": func}
         self.current_keys = []  # 当前按下的顺序
         self.start_time = None
         self.lock = threading.Lock()
 
-        self.hook_listener = HookListener()
-        self.hook_listener.add_handler("keydown", self._on_keydown)
-        self.hook_listener.add_handler("keyup", self._on_keyup)
-        self.hook_listener.start()
+        self.hook_listener = hook_listener
+        self.hook_listener.add_handler("keydown", self._on_hot_key_down)
+        self.hook_listener.add_handler("keyup", self._on_hot_key_up)
 
     def _key_in_hex_codes(self, key: str):
         """判断按键是否存在于Hex_Key_Code中"""
@@ -77,7 +76,7 @@ class HotkeyListener:
                 return f"successful unregistration of hotkey: {name}, keys: {self.hotkeys[name]['keys']}, func: {self.hotkeys[name]['func']}"
             raise ValueError(f"name not found in hotkeys: {name}")
 
-    def _on_keydown(self, event: KeyEvent):
+    def _on_hot_key_down(self, event: KeyEvent):
         vk_code = event.key_code
         now = time.time()
 
@@ -101,7 +100,7 @@ class HotkeyListener:
                     return True
         return False
 
-    def _on_keyup(self, event: KeyEvent):
+    def _on_hot_key_up(self, event: KeyEvent):
         vk_code = event.key_code
         # 只移除释放的键
         if vk_code in self.current_keys:
@@ -111,8 +110,14 @@ class HotkeyListener:
             self.start_time = None
         return False
 
+    def start(self):
+        self.hook_listener.start()
+
     def stop(self):
         self.hook_listener.stop()
 
     def wait(self):
         self.hook_listener.wait()
+
+    def __del__(self):
+        self.stop()
