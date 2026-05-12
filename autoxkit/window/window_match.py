@@ -1,4 +1,4 @@
-
+import mss
 import math
 import numpy as np
 from pathlib import Path
@@ -36,6 +36,7 @@ class WindowMatch:
     """窗口匹配类"""
     def __init__(self, hwnd: int = None):
         self.hwnd = hwnd if hwnd else None
+        self.sct = mss.mss()
 
     def _to_gray(self, image: np.ndarray) -> np.ndarray:
         """
@@ -108,6 +109,7 @@ class WindowMatch:
 
         # 尝试多种截图方法
         methods = [
+            self._screenshot_mss,
             self._screenshot_printwindow,
             self._screenshot_bitblt
         ]
@@ -335,6 +337,47 @@ class WindowMatch:
                 ctypes.windll.gdi32.DeleteDC(hdc_mem)
             if hdc:
                 ctypes.windll.user32.ReleaseDC(self.hwnd, hdc)
+
+    def _screenshot_mss(self, rect: tuple[int, int, int, int] = None) -> np.ndarray:
+        """
+            截图
+        Args:
+            rect (RectTuple, optional): 截图区域。默认 None。
+        Returns:
+            np.ndarray: 截图图像
+        """
+        # 窗口客户区位置
+        client_point = wintypes.POINT(0, 0)
+        ctypes.windll.user32.ClientToScreen(self.hwnd, ctypes.byref(client_point))
+
+        # 窗口客户区大小
+        _rect = RECT()
+        ctypes.windll.user32.GetClientRect(self.hwnd, ctypes.byref(_rect))
+        window_width = _rect.right - _rect.left
+        window_height = _rect.bottom - _rect.top
+
+        if rect is None:
+            # 截取整个客户区窗口
+            rect = (
+                client_point.x,
+                client_point.y,
+                client_point.x + window_width,
+                client_point.y + window_height
+            )
+            rect = RectTuple(*rect)
+        else:
+            # 截取指定区域（相对于客户区）
+            rect = (
+                rect[0] + client_point.x,
+                rect[1] + client_point.y,
+                rect[2] + client_point.x,
+                rect[3] + client_point.y
+            )
+            rect = RectTuple(*rect)
+
+        screen_image = self.sct.grab(rect)
+        screen_image = self._image_to_numpy(screen_image, to_rgb=True)
+        return screen_image
 
     def get_pixel_color(self, x: int, y: int, is_return_hex: bool = False) -> str | tuple:
         """

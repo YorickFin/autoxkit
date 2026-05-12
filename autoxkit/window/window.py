@@ -22,18 +22,6 @@ class Window(WindowAction, WindowMatch):
                 WindowAction.__init__(self, self.hwnd)
                 WindowMatch.__init__(self, self.hwnd)
 
-    def activate_window(self):
-        """激活窗口到前台显示"""
-        if self.hwnd:
-            # 获取一级父窗口句柄
-            current_hwnd = self.hwnd
-            while True:
-                parent_hwnd = user32.GetParent(current_hwnd)
-                if parent_hwnd == 0:
-                    break
-                current_hwnd = parent_hwnd
-            user32.ShowWindow(current_hwnd, 9)
-
     @property
     def client_size(self) -> tuple:
         """
@@ -59,6 +47,18 @@ class Window(WindowAction, WindowMatch):
             ctypes.windll.user32.ClientToScreen(self.hwnd, ctypes.byref(client_point))
             return (client_point.x, client_point.y)
         raise ValueError("窗口句柄未设置")
+
+    def activate_window(self):
+        """激活窗口到前台显示"""
+        if self.hwnd:
+            # 获取一级父窗口句柄
+            current_hwnd = self.hwnd
+            while True:
+                parent_hwnd = user32.GetParent(current_hwnd)
+                if parent_hwnd == 0:
+                    break
+                current_hwnd = parent_hwnd
+            user32.ShowWindow(current_hwnd, 9)
 
     def bind_window(self):
         """

@@ -2,6 +2,7 @@ import time
 import ctypes
 from ctypes import wintypes
 from ..constants import Hex_Key_Code as HKC
+from ..mousekey import KeyBoard, Mouse
 
 user32 = ctypes.windll.user32
 
@@ -58,6 +59,9 @@ class WindowAction:
     """
     def __init__(self, hwnd: int = None):
         self.hwnd = hwnd if hwnd else None
+        self.key_board = KeyBoard()
+        self.mouse = Mouse()
+
         self.mouse_point = tuple()
         self.mouse_state = 0
         self.button_mapping = {
@@ -66,147 +70,186 @@ class WindowAction:
             2: [WM_MBUTTONDOWN, WM_MBUTTONUP, MK_MBUTTON],
         }
 
-    def send_activate_message(self, use_post=False):
+        # 窗口客户区位置
+        self.client_point = wintypes.POINT(0, 0)
+        ctypes.windll.user32.ClientToScreen(self.hwnd, ctypes.byref(self.client_point))
+
+        self.global_key = False
+        self.global_mouse = False
+
+    def send_activate_message(self, mode='send'):
         """
             发送虚拟激活消息，让窗口认为自己被激活
         Args:
-            use_post (bool): 是否使用 PostMessage 发送消息。默认 False
+            mode (str): 发送模式，'send', 'post'。默认 'send'
         """
         if not self.hwnd:
             raise ValueError("窗口句柄未设置")
 
-        if use_post:
+        if mode == 'post':
             PostMessage(self.hwnd, WM_ACTIVATE, WA_ACTIVE, 0)
-        else:
+        elif mode == 'send':
             SendMessage(self.hwnd, WM_ACTIVATE, WA_ACTIVE, 0)
+        else:
+            raise ValueError("Invalid mode. Must be 'send' or 'post'.")
         time.sleep(0.02)  # 等待窗口处理激活消息
 
-    def send_key_down(self, key_name: str, use_post=False):
+    def send_key_down(self, key_name: str, mode='send'):
         """
             发送按键按下消息
         Args:
             key_name (str): 按键名称
-            use_post (bool): 是否使用 PostMessage 发送消息。默认 False
+            mode (str): 发送模式，'send', 'post', 'global'。默认 'send'
         """
         if not self.hwnd:
             raise ValueError("窗口句柄未设置")
+
+        if mode == 'global':
+            self.key_board.key_down(key_name)
+            return
 
         vk = HKC[key_name]
         scan = MapVirtualKey(vk, 0)
         lparam = (scan << 16) | 1
-        self.send_activate_message(use_post)
-        if use_post:
+        if mode == 'post':
+            self.send_activate_message(mode)
             PostMessage(self.hwnd, WM_KEYDOWN, vk, lparam)
-        else:
+        elif mode == 'send':
+            self.send_activate_message(mode)
             SendMessage(self.hwnd, WM_KEYDOWN, vk, lparam)
+        else:
+            raise ValueError("Invalid mode. Must be 'send', 'post', or 'global'.")
 
-    def send_key_up(self, key_name: str, use_post=False):
+    def send_key_up(self, key_name: str, mode='send'):
         """
             发送按键释放消息
         Args:
             key_name (str): 按键名称
-            use_post (bool): 是否使用 PostMessage 发送消息。默认 False
+            mode (str): 发送模式，'send', 'post', 'global'。默认 'send'
         """
         if not self.hwnd:
             raise ValueError("窗口句柄未设置")
 
+        if mode == 'global':
+            self.key_board.key_up(key_name)
+            return
+
         vk = HKC[key_name]
         scan = MapVirtualKey(vk, 0)
         lparam = (scan << 16) | 0xC0000001
-        self.send_activate_message(use_post)
-        if use_post:
+        if mode == 'post':
+            self.send_activate_message(mode)
             PostMessage(self.hwnd, WM_KEYUP, vk, lparam)
-        else:
+        elif mode == 'send':
+            self.send_activate_message(mode)
             SendMessage(self.hwnd, WM_KEYUP, vk, lparam)
+        else:
+            raise ValueError("Invalid mode. Must be 'send', 'post', or 'global'.")
 
-    def send_key_click(self, key_name: str, delay: float = 0.02, use_post=False):
+    def send_key_click(self, key_name: str, delay: float = 0.02, mode='send'):
         """
             发送按键点击消息
         Args:
             key_name (str): 按键名称
             delay (float): 按键按下和释放之间的延迟时间。默认 0.02
-            use_post (bool): 是否使用 PostMessage 发送消息。默认 False
+            mode (str): 发送模式，'send', 'post', 'global'。默认 'send'
         """
-        self.send_key_down(key_name, use_post)
+        self.send_key_down(key_name, mode)
         time.sleep(delay)
-        self.send_key_up(key_name, use_post)
+        self.send_key_up(key_name, mode)
 
-    def send_key_combination(self, keys: list, use_post=False):
+    def send_key_combination(self, keys: list, mode='send'):
         """
             发送组合键消息
         Args:
             keys (list): 组合键列表，例如 ['Ctrl', 'A']
-            use_post (bool): 是否使用 PostMessage 发送消息。默认 False
+            mode (str): 发送模式，'send', 'post', 'global'。默认 'send'
         """
         for key in keys:
-            self.send_key_down(key, use_post)
+            self.send_key_down(key, mode)
             time.sleep(0.01)
         time.sleep(0.01)
         for key in reversed(keys):
-            self.send_key_up(key, use_post)
+            self.send_key_up(key, mode)
             time.sleep(0.01)
 
-    def send_text(self, text: str, use_post=False):
+    def send_text(self, text: str, mode='send'):
         """
             发送文本消息
         Args:
             text (str): 要发送的文本
-            use_post (bool): 是否使用 PostMessage 发送消息。默认 False
+            mode (str): 发送模式，'send', 'post'。默认 'send'
         """
         if not self.hwnd:
             raise ValueError("窗口句柄未设置")
 
-        self.send_activate_message(use_post)
+        self.send_activate_message(mode)
         for char in text:
-            if use_post:
+            if mode == 'post':
                 PostMessage(self.hwnd, WM_CHAR, ord(char), 0)
-            else:
+            elif mode == 'send':
                 SendMessage(self.hwnd, WM_CHAR, ord(char), 0)
+            else:
+                raise ValueError("Invalid mode. Must be 'send' or 'post'.")
             time.sleep(0.02)
 
-    def send_mouse_down(self, x: int=None, y: int=None, button: int = 0, use_post=False):
+    def send_mouse_down(self, x: int=None, y: int=None, button: int = 0, mode='send'):
         """
             发送鼠标按下消息
         Args:
             x (int): 目标X坐标
             y (int): 目标Y坐标
             button (int): 鼠标按钮(0:左键, 1:右键, 2:中键)
-            use_post (bool): 是否使用PostMessage发送消息。默认 False
+            mode (str): 发送模式，'send', 'post', 'global'。默认 'send'
         """
         if not self.hwnd:
             raise ValueError("窗口句柄未设置")
 
+        if mode == 'global':
+            self.mouse.mouse_down(self.client_point.x + x, self.client_point.y + y, button)
+            return
+
         lparam = self._verify_mouse_point(x, y)
         self.mouse_state |= self.button_mapping[button][2]
 
-        self.send_activate_message(use_post)
-        if use_post:
+        if mode == 'post':
+            self.send_activate_message(mode)
             PostMessage(self.hwnd, self.button_mapping[button][0], self.button_mapping[button][2], lparam)
-        else:
+        elif mode == 'send':
+            self.send_activate_message(mode)
             SendMessage(self.hwnd, self.button_mapping[button][0], self.button_mapping[button][2], lparam)
+        else:
+            raise ValueError("Invalid mode. Must be 'send', 'post', or 'global'.")
 
-    def send_mouse_up(self, x: int=None, y: int=None, button: int = 0, use_post=False):
+    def send_mouse_up(self, x: int=None, y: int=None, button: int = 0, mode='send'):
         """
             发送鼠标释放消息
         Args:
             x (int): 目标X坐标
             y (int): 目标Y坐标
             button (int): 鼠标按钮(0:左键, 1:右键, 2:中键)
-            use_post (bool): 是否使用PostMessage发送消息。默认 False
+            mode (str): 发送模式，'send', 'post', 'global'。默认 'send'
         """
         if not self.hwnd:
             raise ValueError("窗口句柄未设置")
 
+        if mode == 'global':
+            self.mouse.mouse_up(self.client_point.x + x, self.client_point.y + y, button)
+            return
+
         lparam = self._verify_mouse_point(x, y)
         self.mouse_state &= ~self.button_mapping[button][2]
 
-        self.send_activate_message(use_post)
-        if use_post:
+        if mode == 'post':
+            self.send_activate_message(mode)
             PostMessage(self.hwnd, self.button_mapping[button][1], 0, lparam)
-        else:
+        elif mode == 'send':
+            self.send_activate_message(mode)
             SendMessage(self.hwnd, self.button_mapping[button][1], 0, lparam)
+        else:
+            raise ValueError("Invalid mode. Must be 'send', 'post', or 'global'.")
 
-    def send_mouse_click(self, x: int=None, y: int=None, button: int = 0, delay: float = 0.02, use_post=False):
+    def send_mouse_click(self, x: int=None, y: int=None, button: int = 0, delay: float = 0.02, mode='send'):
         """
             发送鼠标点击消息
         Args:
@@ -214,13 +257,13 @@ class WindowAction:
             y (int): 目标Y坐标
             delay (float): 点击间隔延迟时间(秒)
             button (int): 鼠标按钮(0:左键, 1:右键, 2:中键)
-            use_post (bool): 是否使用PostMessage发送消息。默认 False
+            mode (str): 发送模式，'send', 'post', 'global'。默认 'send'
         """
-        self.send_mouse_down(x, y, button, use_post)
+        self.send_mouse_down(x, y, button, mode)
         time.sleep(delay)
-        self.send_mouse_up(x, y, button, use_post)
+        self.send_mouse_up(x, y, button, mode)
 
-    def send_mouse_move(self, x: int=None, y: int=None, duration: float = 0.2, steps: int = 10, use_post=False):
+    def send_mouse_move(self, x: int=None, y: int=None, duration: float = 0.2, steps: int = 10, mode='send'):
         """
             发送鼠标移动消息
         Args:
@@ -228,10 +271,14 @@ class WindowAction:
             y (int): 目标Y坐标
             duration (float): 移动总用时(秒)
             steps (int): 移动拆分步数
-            use_post (bool): 是否使用PostMessage发送消息。默认 False
+            mode (str): 发送模式，'send', 'post', 'global'。默认 'send'
         """
         if not self.hwnd:
             raise ValueError("窗口句柄未设置")
+
+        if mode == 'global':
+            self.mouse.mouse_move(self.client_point.x + x, self.client_point.y + y, duration, steps)
+            return
 
         # 获取当前鼠标位置（使用记录的位置，如果没有则使用目标位置）
         if self.mouse_point:
@@ -239,14 +286,14 @@ class WindowAction:
         else:
             start_x, start_y = x, y
 
-        self.send_activate_message(use_post)
+        self.send_activate_message(mode)
 
         # 如果持续时间为0或步数小于等于1，直接移动到目标位置
         if duration <= 0 or steps <= 1:
             lparam = self._verify_mouse_point(x, y)
-            if use_post:
+            if mode == 'post':
                 PostMessage(self.hwnd, WM_MOUSEMOVE, self.mouse_state, lparam)
-            else:
+            elif mode == 'send':
                 SendMessage(self.hwnd, WM_MOUSEMOVE, self.mouse_state, lparam)
             return
 
@@ -266,26 +313,28 @@ class WindowAction:
             lparam = self._verify_mouse_point(int(current_x), int(current_y))
 
             # 发送鼠标移动消息
-            if use_post:
+            if mode == 'post':
                 PostMessage(self.hwnd, WM_MOUSEMOVE, self.mouse_state, lparam)
-            else:
+            elif mode == 'send':
                 SendMessage(self.hwnd, WM_MOUSEMOVE, self.mouse_state, lparam)
 
             # 等待一段时间
             time.sleep(step_interval)
 
-    def send_mouse_wheel(self, delta: int, use_post=False):
+    def send_mouse_wheel(self, amount: int, x: int=None, y: int=None, mode='send'):
         """
             发送鼠标滚轮消息
         Args:
-            delta (int): 滚动值（正值向上，负值向下）
-            use_post (bool): 是否使用PostMessage发送消息。默认 False
+            amount (int): 滚动距离(正值向上，负值向下)
+            mode (str): 发送模式，'send', 'post', 'global'。默认 'send'
         """
         if not self.hwnd:
             raise ValueError("窗口句柄未设置")
 
         # 获取当前鼠标位置（使用记录的位置，如果没有则使用窗口中心）
-        if self.mouse_point:
+        if x is not None and y is not None:
+            x, y = x, y
+        elif self.mouse_point:
             x, y = self.mouse_point
         else:
             # 获取窗口矩形
@@ -295,15 +344,19 @@ class WindowAction:
             x = (rect.left + rect.right) // 2
             y = (rect.top + rect.bottom) // 2
 
-        self.send_activate_message(use_post)
+        if mode == 'global':
+            self.mouse.mouse_wheel(self.client_point.x + x, self.client_point.y + y, amount)
+            return
+
+        self.send_activate_message(mode)
         # 确保使用屏幕坐标
         lparam = MAKELPARAM(x, y)
         # 高16位是滚轮滚动量，低16位是鼠标状态
-        wparam = (delta << 16) | (self.mouse_state & 0xFFFF)
+        wparam = (amount << 16) | (self.mouse_state & 0xFFFF)
 
-        if use_post:
+        if mode == 'post':
             PostMessage(self.hwnd, WM_MOUSEWHEEL, wparam, lparam)
-        else:
+        elif mode == 'send':
             SendMessage(self.hwnd, WM_MOUSEWHEEL, wparam, lparam)
 
     def _verify_mouse_point(self, x: int=None, y: int=None):
