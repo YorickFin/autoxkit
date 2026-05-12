@@ -81,17 +81,17 @@ class WindowAction:
         """
             发送虚拟激活消息，让窗口认为自己被激活
         Args:
-            mode (str): 发送模式，'send', 'post'。默认 'send'
+            mode (str): 发送模式，'send', 'post', 'global'。默认 'send'
         """
         if not self.hwnd:
             raise ValueError("窗口句柄未设置")
 
         if mode == 'post':
             PostMessage(self.hwnd, WM_ACTIVATE, WA_ACTIVE, 0)
-        elif mode == 'send':
+        elif mode == 'send' or mode == 'global':
             SendMessage(self.hwnd, WM_ACTIVATE, WA_ACTIVE, 0)
         else:
-            raise ValueError("Invalid mode. Must be 'send' or 'post'.")
+            raise ValueError("Invalid mode. Must be 'send', 'post', or 'global'.")
         time.sleep(0.02)  # 等待窗口处理激活消息
 
     def send_key_down(self, key_name: str, mode='send'):
@@ -178,7 +178,7 @@ class WindowAction:
             发送文本消息
         Args:
             text (str): 要发送的文本
-            mode (str): 发送模式，'send', 'post'。默认 'send'
+            mode (str): 发送模式，'send', 'post', 'global'。默认 'send'
         """
         if not self.hwnd:
             raise ValueError("窗口句柄未设置")
@@ -187,10 +187,10 @@ class WindowAction:
         for char in text:
             if mode == 'post':
                 PostMessage(self.hwnd, WM_CHAR, ord(char), 0)
-            elif mode == 'send':
+            elif mode == 'send' or mode == 'global':
                 SendMessage(self.hwnd, WM_CHAR, ord(char), 0)
             else:
-                raise ValueError("Invalid mode. Must be 'send' or 'post'.")
+                raise ValueError("Invalid mode. Must be 'send', 'post', or 'global'.")
             time.sleep(0.02)
 
     def send_mouse_down(self, x: int=None, y: int=None, button: int = 0, mode='send'):
