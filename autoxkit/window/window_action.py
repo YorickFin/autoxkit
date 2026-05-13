@@ -74,6 +74,10 @@ class WindowAction:
         self.client_point = wintypes.POINT(0, 0)
         ctypes.windll.user32.ClientToScreen(self.hwnd, ctypes.byref(self.client_point))
 
+        # 窗口客户区大小
+        self.rect = wintypes.RECT()
+        user32.GetClientRect(self.hwnd, ctypes.byref(self.rect))
+
         self.global_key = False
         self.global_mouse = False
 
@@ -377,5 +381,10 @@ class WindowAction:
         elif self.mouse_point:
             lparam = MAKELPARAM(self.mouse_point[0], self.mouse_point[1])
             return lparam
-        raise ValueError("鼠标位置未设置")
+        else:
+            x = (self.rect.right - self.rect.left) // 2
+            y = (self.rect.bottom - self.rect.top) // 2
+            lparam = MAKELPARAM(x, y)
+            self.mouse_point = (x, y)
+            return lparam
 
