@@ -94,13 +94,13 @@ class WindowMatch:
             raise FileNotFoundError(f"目录不存在: {image_path.parent}")
         Image.fromarray(image).save(image_path)
 
-    def screenshot(self, save_path: str = None, rect: tuple[int, int, int, int] = None) -> np.ndarray:
+    def screenshot(self, rect: tuple[int, int, int, int]=None, save_path: str = None) -> np.ndarray:
         """
             截图
         Args:
-            save_path (str, None): 截图保存路径，包含自定义文件名。
             rect (tuple, None): 矩形区域元组，应包含 (x1, y1, x2, y2)，相对于窗口左上角。
                                    如果为 None，则截取整个窗口。
+            save_path (str, None): 截图保存路径，包含自定义文件名。
         Returns:
             np.ndarray: 截图图像的 numpy 数组表示。
         """

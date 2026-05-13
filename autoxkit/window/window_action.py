@@ -206,7 +206,10 @@ class WindowAction:
             raise ValueError("窗口句柄未设置")
 
         if mode == 'global':
-            self.mouse.mouse_down(self.client_point.x + x, self.client_point.y + y, button)
+            if x is None or y is None:
+                self.mouse.mouse_down(button=button)
+            else:
+                self.mouse.mouse_down(self.client_point.x + x, self.client_point.y + y, button)
             return
 
         lparam = self._verify_mouse_point(x, y)
@@ -234,7 +237,10 @@ class WindowAction:
             raise ValueError("窗口句柄未设置")
 
         if mode == 'global':
-            self.mouse.mouse_up(self.client_point.x + x, self.client_point.y + y, button)
+            if x is None or y is None:
+                self.mouse.mouse_up(button=button)
+            else:
+                self.mouse.mouse_up(self.client_point.x + x, self.client_point.y + y, button)
             return
 
         lparam = self._verify_mouse_point(x, y)
@@ -331,6 +337,13 @@ class WindowAction:
         if not self.hwnd:
             raise ValueError("窗口句柄未设置")
 
+        if mode == 'global':
+            if x is None or y is None:
+                self.mouse.mouse_wheel(amount=amount)
+            else:
+                self.mouse.mouse_wheel(self.client_point.x + x, self.client_point.y + y, amount)
+            return
+
         # 获取当前鼠标位置（使用记录的位置，如果没有则使用窗口中心）
         if x is not None and y is not None:
             x, y = x, y
@@ -343,10 +356,6 @@ class WindowAction:
             # 使用窗口中心作为默认位置
             x = (rect.left + rect.right) // 2
             y = (rect.top + rect.bottom) // 2
-
-        if mode == 'global':
-            self.mouse.mouse_wheel(self.client_point.x + x, self.client_point.y + y, amount)
-            return
 
         self.send_activate_message(mode)
         # 确保使用屏幕坐标
