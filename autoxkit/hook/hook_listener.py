@@ -221,7 +221,7 @@ class HookListener:
             return 'Middle'
         elif wParam in (HHC["XDown"], HHC["XUp"]):
             high = (mouseData >> 16) & 0xFFFF
-            return 'side1' if high == HHC["side1"] else 'side2'
+            return 'MSide1' if high == HHC["MSide1"] else 'MSide2'
 
     # 启动监听（新线程 pump message loop）
     def start(self):

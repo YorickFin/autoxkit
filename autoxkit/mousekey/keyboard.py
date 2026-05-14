@@ -15,8 +15,8 @@ MAPVK_VK_TO_VSC = 0
 EXTENDED_KEYS = {
     "Left", "Up", "Right", "Down",
     "Insert", "Delete", "Home", "End", "PgUp", "PgDown",
-    "Rctrl", "Ralt",
-    "Volume_Down", "Volume_Up", "Volume_Mute", "Launch_App2",
+    "RCtrl", "RAlt",
+    "VolumeDown", "VolumeUp", "VolumeMute", "LaunchApp2",
 }
 
 class KeyBoard:

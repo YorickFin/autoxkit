@@ -19,8 +19,8 @@ class Mouse:
             0: [HMC["MLeftDown"], HMC["MLeftUp"], 0],
             1: [HMC["MRightDown"], HMC["MRightUp"], 0],
             2: [HMC["MiddleDown"], HMC["MiddleUp"], 0],
-            3: [HMC["XDown"], HMC["XUp"], HMC["side1"]],
-            4: [HMC["XDown"], HMC["XUp"], HMC["side2"]],
+            3: [HMC["XDown"], HMC["XUp"], HMC["MSide1"]],
+            4: [HMC["XDown"], HMC["XUp"], HMC["MSide2"]],
         }
 
     def _mouse_action(self, flags, x=0, y=0, data=0):
