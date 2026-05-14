@@ -15,6 +15,8 @@ class MatchImage:
     def __init__(self):
         self.sct = mss.mss()
 
+        self.load_images = dict()
+
     def _to_gray(self, image: np.ndarray) -> np.ndarray:
         """
         将 RGB 转灰度
@@ -39,18 +41,36 @@ class MatchImage:
 
         return img_array
 
-    def read_image(self, image_path: str) -> np.ndarray:
+    def cache_image(self, image_path: str, image: np.ndarray) -> None:
         """
-            读取图像
+            缓存图像
+        Args:
+            image_path (str): 图像文件路径
+        """
+        self.load_images[image_path] = image
+
+    def clear_cache_images(self) -> None:
+        """
+            清空缓存图像
+        """
+        self.load_images.clear()
+
+    def load_image(self, image_path: str) -> np.ndarray:
+        """
+            加载图像
         Args:
             image_path (str): 图像文件路径
         Returns:
             np.ndarray: 图像的 numpy 数组表示
         """
+        if image_path in self.load_images:
+            return self.load_images[image_path]
         image_path = Path(image_path)
         if not image_path.exists():
             raise FileNotFoundError(f"文件不存在: {image_path}")
-        return self._image_to_numpy(Image.open(image_path))
+        image_np = self._image_to_numpy(Image.open(image_path))
+        self.cache_image(str(image_path), image_np)
+        return image_np
 
     def save_image(self, image: np.ndarray, image_path: str) -> None:
         """
