@@ -1,4 +1,5 @@
 import mss
+import math
 import numpy as np
 from scipy import ndimage
 from scipy.signal import fftconvolve
@@ -8,14 +9,15 @@ from pathlib import Path
 from ..tools import RectTuple
 
 
-class MatchImage:
+class Match:
     """
-    图像匹配类
+    图像与颜色匹配类
     """
     def __init__(self):
         self.sct = mss.mss()
+        self.max_distance = math.sqrt(255**2 * 3)  # RGB 空间最大距离 ≈ 441.67
 
-        self.load_images = dict()
+        self._load_images = dict()
 
     def _to_gray(self, image: np.ndarray) -> np.ndarray:
         """
@@ -41,19 +43,26 @@ class MatchImage:
 
         return img_array
 
+    def _hex_to_rgb(self, hex_color: str):
+        """
+        将十六进制颜色字符串转换为 RGB 三元组
+        """
+        hex_color = hex_color.lstrip('#')
+        return tuple(int(hex_color[i:i+2], 16) for i in (0, 2, 4))
+
     def cache_image(self, image_path: str, image: np.ndarray) -> None:
         """
             缓存图像
         Args:
             image_path (str): 图像文件路径
         """
-        self.load_images[image_path] = image
+        self._load_images[image_path] = image
 
     def clear_cache_images(self) -> None:
         """
             清空缓存图像
         """
-        self.load_images.clear()
+        self._load_images.clear()
 
     def load_image(self, image_path: str) -> np.ndarray:
         """
@@ -63,8 +72,8 @@ class MatchImage:
         Returns:
             np.ndarray: 图像的 numpy 数组表示
         """
-        if image_path in self.load_images:
-            return self.load_images[image_path]
+        if image_path in self._load_images:
+            return self._load_images[image_path]
         image_path = Path(image_path)
         if not image_path.exists():
             raise FileNotFoundError(f"文件不存在: {image_path}")
@@ -103,7 +112,50 @@ class MatchImage:
 
         return screen_image
 
-    def match(self, target_image: np.ndarray=None, rect: tuple[int, int, int, int]=None,
+    def get_pixel_color(self, x: int, y: int, is_return_hex: bool = False) -> str | tuple:
+        """
+            获取屏幕坐标 (x, y) 处的颜色
+        Args:
+            x (int): 屏幕坐标 x 轴
+            y (int): 屏幕坐标 y 轴
+            is_return_hex (bool, optional): 是否返回十六进制格式字符串，默认返回 RGB 元组
+        Returns:
+            str | tuple: 十六进制格式字符串，如 #FFAABB 或 (r, g, b) 元组
+        """
+        monitor = {"top": y, "left": x, "width": 1, "height": 1}
+        img = self.sct.grab(monitor)
+        pixel = img.pixel(0, 0)
+
+        if is_return_hex:   # 返回十六进制字符串
+            return f"#{pixel[0]:02X}{pixel[1]:02X}{pixel[2]:02X}"
+        return pixel    # 返回 RGB 元组
+
+    def match_color(self, source_color: str | tuple, target_color: str | tuple, similarity: float = 0.8) -> tuple:
+        """
+            匹配颜色
+        Args:
+            source_color (str | tuple): 源颜色 (str: 颜色十六进制字符串， tuple: (r, g, b) | (x, y))
+            target_color (str | tuple): 目标颜色 (str: 颜色十六进制字符串， tuple: (r, g, b) | (x, y))
+            similarity (float): 相似度阈值，取值范围 0.0 ~ 1.0，越接近 1 越严格。默认值为 0.8。
+        Returns:
+            tuple: bool(True | False), float(相似度结果值)
+        """
+        if type(source_color) is str:
+            source_color = self._hex_to_rgb(source_color)
+        elif type(source_color) is tuple and len(source_color) == 2:
+            source_color = self.get_pixel_color(*source_color, is_return_hex=False)
+
+        if type(target_color) is str:
+            target_color = self._hex_to_rgb(target_color)
+        elif type(target_color) is tuple and len(target_color) == 2:
+            target_color = self.get_pixel_color(*target_color, is_return_hex=False)
+
+        # 计算欧几里得距离
+        distance = math.sqrt(sum((a - b) ** 2 for a, b in zip(source_color, target_color)))
+        score = 1 - (distance / self.max_distance)
+        return score >= similarity, round(score, 3)
+
+    def match_image(self, target_image: np.ndarray=None, rect: tuple[int, int, int, int]=None,
                     similarity: float=0.8) -> tuple[tuple, float]:
         """
             匹配图像
