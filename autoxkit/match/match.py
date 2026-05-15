@@ -3,10 +3,8 @@ import math
 import numpy as np
 from scipy import ndimage
 from scipy.signal import fftconvolve
-from PIL import Image
-from pathlib import Path
 
-from ..tools import RectTuple
+from ..utils import RectTuple, DataHeader
 
 
 class Match:
@@ -15,54 +13,14 @@ class Match:
     """
     def __init__(self):
         self.sct = mss.mss()
+        self.data_header = DataHeader()
         self.max_distance = math.sqrt(255**2 * 3)  # RGB 空间最大距离 ≈ 441.67
-
-        self._load_images = dict()
-
-    def _to_gray(self, image: np.ndarray) -> np.ndarray:
-        """
-        将 RGB 转灰度
-        """
-        return np.mean(image, axis=2).astype(np.float32)
-
-    def _image_to_numpy(self, image, to_rgb: bool = False) -> np.ndarray:
-        """
-            将图像转换为 numpy 数组
-        Args:
-            image: 图像对象
-            to_rgb: 是否转换为 RGB 格式
-        """
-        img_array = np.array(image)
-        # 确保是三通道格式
-        if img_array.shape[2] != 3:
-            img_array = img_array[:, :, :3]
-
-        if to_rgb:
-            # BGR -> RGB
-            img_array = img_array[:, :, [2, 1, 0]]
-
-        return img_array
-
-    def _hex_to_rgb(self, hex_color: str):
-        """
-        将十六进制颜色字符串转换为 RGB 三元组
-        """
-        hex_color = hex_color.lstrip('#')
-        return tuple(int(hex_color[i:i+2], 16) for i in (0, 2, 4))
-
-    def cache_image(self, image_path: str, image: np.ndarray) -> None:
-        """
-            缓存图像
-        Args:
-            image_path (str): 图像文件路径
-        """
-        self._load_images[image_path] = image
 
     def clear_cache_images(self) -> None:
         """
             清空缓存图像
         """
-        self._load_images.clear()
+        self.data_header.clear_cache_images()
 
     def load_image(self, image_path: str) -> np.ndarray:
         """
@@ -72,14 +30,7 @@ class Match:
         Returns:
             np.ndarray: 图像的 numpy 数组表示
         """
-        if image_path in self._load_images:
-            return self._load_images[image_path]
-        image_path = Path(image_path)
-        if not image_path.exists():
-            raise FileNotFoundError(f"文件不存在: {image_path}")
-        image_np = self._image_to_numpy(Image.open(image_path))
-        self.cache_image(str(image_path), image_np)
-        return image_np
+        return self.data_header.load_image(image_path)
 
     def save_image(self, image: np.ndarray, image_path: str) -> None:
         """
@@ -88,10 +39,7 @@ class Match:
             image (np.ndarray): 图像的 numpy 数组表示
             image_path (str): 图像文件路径
         """
-        image_path = Path(image_path).absolute()
-        if not image_path.parent.is_dir():
-            raise FileNotFoundError(f"目录不存在: {image_path.parent}")
-        Image.fromarray(image).save(image_path)
+        return self.data_header.save_image(image, image_path)
 
     def screenshot(self, rect: tuple[int, int, int, int], save_path: str=None) -> np.ndarray:
         """
@@ -105,10 +53,10 @@ class Match:
         rect = RectTuple(*rect)
         screen_image = self.sct.grab(rect)
         # 转换为 numpy 数组，MSS 返回 BGRA 格式需要转换
-        screen_image = self._image_to_numpy(screen_image, to_rgb=True)
+        screen_image = self.data_header.image_to_numpy(screen_image, to_rgb=True)
 
         if save_path is not None:
-            self.save_image(screen_image, save_path)
+            self.data_header.save_image(screen_image, save_path)
 
         return screen_image
 
@@ -122,9 +70,7 @@ class Match:
         Returns:
             str | tuple: 十六进制格式字符串，如 #FFAABB 或 (r, g, b) 元组
         """
-        monitor = {"top": y, "left": x, "width": 1, "height": 1}
-        img = self.sct.grab(monitor)
-        pixel = img.pixel(0, 0)
+        pixel = tuple(int(c) for c in self.screenshot((x, y, x+1, y+1))[0, 0])
 
         if is_return_hex:   # 返回十六进制字符串
             return f"#{pixel[0]:02X}{pixel[1]:02X}{pixel[2]:02X}"
@@ -141,12 +87,12 @@ class Match:
             tuple: bool(True | False), float(相似度结果值)
         """
         if type(source_color) is str:
-            source_color = self._hex_to_rgb(source_color)
+            source_color = self.data_header.hex_to_rgb(source_color)
         elif type(source_color) is tuple and len(source_color) == 2:
             source_color = self.get_pixel_color(*source_color, is_return_hex=False)
 
         if type(target_color) is str:
-            target_color = self._hex_to_rgb(target_color)
+            target_color = self.data_header.hex_to_rgb(target_color)
         elif type(target_color) is tuple and len(target_color) == 2:
             target_color = self.get_pixel_color(*target_color, is_return_hex=False)
 
@@ -202,8 +148,8 @@ class Match:
         """
 
         # 转灰度
-        s_channel = self._to_gray(source_image)
-        t_channel = self._to_gray(target_image)
+        s_channel = self.data_header.rgb_to_gray(source_image)
+        t_channel = self.data_header.rgb_to_gray(target_image)
 
         # 模板能量
         t_norm = np.linalg.norm(t_channel)
@@ -258,7 +204,7 @@ class Match:
         """
         # 转灰度
         if len(image.shape) == 3:
-            gray = self._to_gray(image)
+            gray = self.data_header.rgb_to_gray(image)
         else:
             gray = image
 

@@ -42,9 +42,6 @@ def match_color_example():
     print(match.get_pixel_color(x=1700, y=800))     # 默认返回RGB元组
     print(match.get_pixel_color(x=1700, y=800, is_return_hex=True))     # 返回十六进制字符串
 
-    # 十六进制颜色转RGB三元组
-    print(match._hex_to_rgb('#FF0000'))
-
 def match_image_example():
     match = Match()
 
