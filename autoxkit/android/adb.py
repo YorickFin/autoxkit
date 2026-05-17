@@ -3,9 +3,16 @@
 from __future__ import annotations
 
 import asyncio
+import os
 import re
+import subprocess
 from dataclasses import dataclass
 from pathlib import Path
+
+if os.name == "nt":
+    _CREATE_NO_WINDOW = subprocess.CREATE_NO_WINDOW
+else:
+    _CREATE_NO_WINDOW = 0
 
 
 class AdbError(RuntimeError):
@@ -66,6 +73,7 @@ class AdbServerLauncher:
             "devices", "-l",
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
+            creationflags=_CREATE_NO_WINDOW,
         )
         stdout, _ = await proc.communicate()
         out = stdout.decode(errors="replace")
@@ -149,6 +157,7 @@ class AdbServerLauncher:
             *args,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
+            creationflags=_CREATE_NO_WINDOW,
         )
 
     async def _adb(self, *args: str, check: bool = True) -> asyncio.subprocess.Process:
@@ -173,6 +182,7 @@ class AdbServerLauncher:
             *args,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
+            creationflags=_CREATE_NO_WINDOW,
         )
         stdout, stderr = await proc.communicate()
         out = stdout.decode(errors="replace").strip()
