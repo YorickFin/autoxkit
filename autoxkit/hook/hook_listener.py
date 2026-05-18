@@ -277,8 +277,9 @@ class HookListener:
                     user32.TranslateMessage(byref(msg))
                     user32.DispatchMessageW(byref(msg))
             except Exception:
-                # 出现异常直接跳出循环，保证能清理钩子
-                break
+                # 记录异常但不退出循环，确保钩子持续工作
+                # 回调中的异常应由上层自行处理
+                continue
 
         # 离开循环之前确保取消钩子
         if self.keyboard_hook:

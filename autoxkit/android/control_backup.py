@@ -1,4 +1,4 @@
-﻿"""Control and device-message serializers for scrcpy-server v4.0."""
+"""Control and device-message serializers for scrcpy-server v4.0."""
 
 from __future__ import annotations
 
@@ -29,58 +29,6 @@ ACTION_MOVE = 2
 
 POINTER_ID_MOUSE = -1 & 0xFFFFFFFFFFFFFFFF
 POINTER_ID_GENERIC_FINGER = -2 & 0xFFFFFFFFFFFFFFFF
-MAX_TOUCH_POINTERS = 10
-
-
-class PointerManager:
-    """Manages a pool of unique pointer IDs for multi-touch.
-
-    Allocates pointer IDs from 0 upward, up to `MAX_TOUCH_POINTERS`
-    concurrent touches. IDs are reused when released.
-    """
-
-    def __init__(self) -> None:
-        self._next_id = 0
-        self._freed: list[int] = []
-        self._active: set[int] = set()
-
-    def allocate(self) -> int | None:
-        """Allocate a unique pointer ID.
-
-        Returns an integer pointer ID, or `None` if the maximum number
-        of concurrent touches (`MAX_TOUCH_POINTERS`) has been reached.
-        """
-        if len(self._active) >= MAX_TOUCH_POINTERS:
-            return None
-        if self._freed:
-            pid = self._freed.pop()
-        else:
-            pid = self._next_id
-            self._next_id += 1
-        self._active.add(pid)
-        return pid
-
-    def release(self, pointer_id: int) -> None:
-        """Release a previously allocated pointer ID back to the pool."""
-        if pointer_id in self._active:
-            self._active.discard(pointer_id)
-            self._freed.append(pointer_id)
-
-    def reset(self) -> None:
-        """Release all active pointer IDs."""
-        self._active.clear()
-        self._freed.clear()
-        self._next_id = 0
-
-    def active_count(self) -> int:
-        """Return the number of currently active pointer IDs."""
-        return len(self._active)
-
-    def active_ids(self) -> set[int]:
-        """Return the set of currently active pointer IDs."""
-        return set(self._active)
-
-
 
 
 def _position(position: Position) -> bytes:
@@ -243,4 +191,3 @@ def deserialize_device_message(buffer: bytes) -> tuple[DeviceMessage | None, int
     if len(buffer) < total:
         return None, 0
     return DeviceMessage(message_type, uhid_id=uhid_id, data=buffer[5:total]), total
-

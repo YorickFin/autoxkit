@@ -1,4 +1,4 @@
-"""Async stream readers and writers for scrcpy-server v4.0."""
+﻿"""Async stream readers and writers for scrcpy-server v4.0."""
 
 from __future__ import annotations
 
@@ -190,6 +190,7 @@ class ControlStream:
         self.reader = reader
         self.writer = writer
         self._device_buffer = bytearray()
+        self.pointer_manager: control.PointerManager | None = None
 
     async def send(self, message: control.ControlMessage) -> None:
         self.writer.write(message.payload)
@@ -212,6 +213,57 @@ class ControlStream:
     ) -> None:
         position = control.Position(x, y, screen_width, screen_height)
         await self.send(control.inject_touch_event(action, position, pointer_id, pressure, action_button, buttons))
+
+    async def send_touch_managed(
+        self,
+        action: int,
+        x: int,
+        y: int,
+        screen_width: int,
+        screen_height: int,
+        pointer_id: int | None = None,
+        pressure: float = 1.0,
+        action_button: int = 0,
+        buttons: int = 0,
+    ) -> int | None:
+        """Send a touch event with automatic pointer ID management.
+
+        On ``ACTION_DOWN``: if *pointer_id* is ``None``, a new ID is
+        allocated from ``self.pointer_manager``. The final pointer_id
+        is returned (or ``None`` if allocation failed).
+
+        On ``ACTION_UP``: the given *pointer_id* is released back to
+        the pool after sending.
+
+        When ``self.pointer_manager`` is ``None``, falls back to the
+        default ``POINTER_ID_GENERIC_FINGER``.
+        """
+        pm = self.pointer_manager
+
+        if action == control.ACTION_DOWN:
+            if pm is not None and pointer_id is None:
+                pid = pm.allocate()
+                if pid is None:
+                    return None
+            elif pointer_id is not None:
+                pid = pointer_id
+            else:
+                pid = control.POINTER_ID_GENERIC_FINGER
+            await self.send_touch(action, x, y, screen_width, screen_height, pointer_id=pid, pressure=pressure, action_button=action_button, buttons=buttons)
+            return pid
+
+        elif action == control.ACTION_UP:
+            pid = pointer_id if pointer_id is not None else control.POINTER_ID_GENERIC_FINGER
+            await self.send_touch(action, x, y, screen_width, screen_height, pointer_id=pid, pressure=pressure, action_button=action_button, buttons=buttons)
+            if pm is not None and pointer_id is not None:
+                pm.release(pid)
+            return pid
+
+        # ACTION_MOVE: just forward, no lifecycle management
+        pid = pointer_id if pointer_id is not None else control.POINTER_ID_GENERIC_FINGER
+        await self.send_touch(action, x, y, screen_width, screen_height, pointer_id=pid, pressure=pressure, action_button=action_button, buttons=buttons)
+        return None
+
 
     async def set_clipboard(self, text: str, sequence: int = 1, paste: bool = False) -> None:
         await self.send(control.set_clipboard(sequence, text, paste))
@@ -277,3 +329,5 @@ class AudioVideoCombinedStream:
         finally:
             for task in tasks:
                 task.cancel()
+
+
