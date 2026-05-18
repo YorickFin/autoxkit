@@ -98,8 +98,6 @@ class HotkeyListener:
                 if self.current_keys == hotkey["keys"]:
                     hotkey["func"]()
                     self.start_time = now
-                    return True
-        return False
 
     def _on_hot_key_up(self, event: KeyEvent):
         vk_code = event.key_code
@@ -109,7 +107,6 @@ class HotkeyListener:
         # 如果所有键都释放了，重置时间
         if not self.current_keys:
             self.start_time = None
-        return False
 
     def start(self):
         self.hook_listener.start()
