@@ -1,4 +1,4 @@
-"""Android device control module."""
+"""Android 设备控制模块。"""
 
 from __future__ import annotations
 
@@ -23,13 +23,12 @@ __all__ = [
 
 
 class AndroidDevice:
-    """Synchronous Android device controller.
+    """同步 Android 设备控制器。
 
-    Wraps the async ``ScrcpyClient`` in a background thread so all public
-    methods are regular synchronous calls, suitable for use inside hook
-    callbacks (``key_down``, ``key_up``, etc.).
+    将异步的 ``ScrcpyClient`` 封装在后台线程中，使所有公共方法都成为
+    普通的同步调用，适合在钩子回调中使用（``key_down``、``key_up`` 等）。
 
-    Usage::
+    用法::
 
         from autoxkit.android import AndroidDevice
 
@@ -55,7 +54,7 @@ class AndroidDevice:
         self._client: ScrcpyClient | None = None
         self._session_size: tuple[int, int] | None = None
 
-    # ── Connection management ────────────────────────────────
+    # ── 连接管理 ────────────────────────────────
 
     def connect(
         self,
@@ -66,50 +65,50 @@ class AndroidDevice:
         control: bool = True,
         **kwargs: Any,
     ) -> None:
-        """Connect to an Android device via scrcpy-server.
+        """通过 scrcpy-server 连接到 Android 设备。
 
-        Parameters are forwarded to :class:`ScrcpyOptions`.  Common extras:
+        参数将传递给 :class:`ScrcpyOptions`。常用额外参数：
 
-        - ``tunnel_forward`` (bool): use ``adb forward`` instead of
-          ``adb reverse``.
-        - ``tcpip`` (bool): enable ADB-over-TCP/IP before starting.
-        - ``tcpip_dst`` (str): known wireless ADB address.
+        - ``tunnel_forward`` (bool): 使用 ``adb forward`` 而不是
+          ``adb reverse``。
+        - ``tcpip`` (bool): 启动前启用 ADB over TCP/IP。
+        - ``tcpip_dst`` (str): 已知的无线 ADB 地址。
         """
         self._submit(
             self._connect_async(serial, video=video, audio=audio, control=control, **kwargs)
         )
 
     def disconnect(self) -> None:
-        """Disconnect from the device and stop the scrcpy-server."""
+        """断开与设备的连接并停止 scrcpy-server。"""
         self._submit(self._disconnect_async())
 
     @property
     def connected(self) -> bool:
         return self._client is not None
 
-    # ── Touch ────────────────────────────────────────────────
+    # ── 触摸 ────────────────────────────────────────────────
 
     def touch(self, x: int, y: int, action: str) -> None:
-        """Send a touch event.
+        """发送触摸事件。
 
         Args:
-            x: Screen X coordinate.
-            y: Screen Y coordinate.
-            action: ``"down"``, ``"up"``, or ``"move"``.
+            x: 屏幕 X 坐标。
+            y: 屏幕 Y 坐标。
+            action: ``"down"``、``"up"`` 或 ``"move"``。
         """
         action_code = {"down": 0, "up": 1, "move": 2}.get(action)
         if action_code is None:
-            raise ValueError(f"invalid touch action: {action!r} (use down/up/move)")
+            raise ValueError(f"无效的触摸动作：{action!r}（请使用 down/up/move）")
         self._submit(self._touch_async(action_code, x, y))
 
     def tap(self, x: int, y: int, delay: float = 0.05) -> None:
-        """Perform a tap (touch down then up) at screen coordinates."""
+        """在屏幕坐标上执行点击（触摸按下然后抬起）。"""
         self.touch(x, y, "down")
         time.sleep(delay)
         self.touch(x, y, "up")
 
     def swipe(self, x1: int, y1: int, x2: int, y2: int, steps: int = 10) -> None:
-        """Perform a swipe gesture from (x1, y1) to (x2, y2)."""
+        """执行从 (x1, y1) 到 (x2, y2) 的滑动手势。"""
         self.touch(x1, y1, "down")
         for i in range(1, steps + 1):
             t = i / steps
@@ -118,33 +117,33 @@ class AndroidDevice:
             self.touch(cx, cy, "move")
         self.touch(x2, y2, "up")
 
-    # ── Keycode ──────────────────────────────────────────────
+    # ── 按键码 ──────────────────────────────────────────────
 
     def keycode(self, keycode: int, action: str = "down") -> None:
-        """Send an Android keycode event.
+        """发送 Android 按键码事件。
 
         Args:
-            keycode: Android keycode (e.g. 4 = BACK, 3 = HOME).
-            action: ``"down"`` or ``"up"``.
+            keycode: Android 按键码（例如 4 = 返回，3 = 主页）。
+            action: ``"down"`` 或 ``"up"``。
         """
         action_code = {"down": 0, "up": 1}.get(action)
         if action_code is None:
-            raise ValueError(f"invalid key action: {action!r} (use down/up)")
+            raise ValueError(f"无效的按键动作：{action!r}（请使用 down/up）")
         self._submit(self._keycode_async(action_code, keycode))
 
     def key_press(self, keycode: int) -> None:
-        """Press and release a key (simulates a single tap)."""
+        """按下并释放按键（模拟单次点击）。"""
         self.keycode(keycode, "down")
         time.sleep(0.02)
         self.keycode(keycode, "up")
 
-    # ── Clipboard ────────────────────────────────────────────
+    # ── 剪贴板 ────────────────────────────────────────────
 
     def set_clipboard(self, text: str, paste: bool = False) -> None:
-        """Set the device clipboard (optionally also paste)."""
+        """设置设备剪贴板（可选同时粘贴）。"""
         self._submit(self._clipboard_async(text, paste))
 
-    # ── Internal async helpers ───────────────────────────────
+    # ── 内部异步辅助方法 ───────────────────────────────
 
     async def _connect_async(
         self,
@@ -178,21 +177,21 @@ class AndroidDevice:
 
     async def _touch_async(self, action: int, x: int, y: int) -> None:
         if self._client is None or self._client.control is None:
-            raise RuntimeError("device not connected")
+            raise RuntimeError("未连接到设备")
         width, height = self._session_size or (1, 1)
         await self._client.control.send_touch(action, x, y, width, height)
 
     async def _keycode_async(self, action: int, keycode: int) -> None:
         if self._client is None or self._client.control is None:
-            raise RuntimeError("device not connected")
+            raise RuntimeError("未连接到设备")
         await self._client.control.send_keycode(action, keycode)
 
     async def _clipboard_async(self, text: str, paste: bool) -> None:
         if self._client is None or self._client.control is None:
-            raise RuntimeError("device not connected")
+            raise RuntimeError("未连接到设备")
         await self._client.control.set_clipboard(text, sequence=1, paste=paste)
 
-    # ── Async loop bridge ────────────────────────────────────
+    # ── 异步循环桥接 ─────────────────────────────────────
 
     def _submit(self, coro: Any) -> Any:
         future = asyncio.run_coroutine_threadsafe(coro, self._loop)

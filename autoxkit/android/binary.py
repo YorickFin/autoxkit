@@ -1,4 +1,4 @@
-"""Binary helpers for the scrcpy v4.0 protocol."""
+"""scrcpy v4.0 协议的二进制辅助函数。"""
 
 from __future__ import annotations
 
@@ -10,15 +10,15 @@ ReadExact = Callable[[int], Awaitable[bytes]]
 
 
 class ProtocolError(Exception):
-    """Raised when bytes on the wire do not match the expected protocol."""
+    """当网络上的字节不符合预期协议时抛出。"""
 
 
 class StreamDisabledError(ProtocolError):
-    """Raised when scrcpy-server explicitly disables a media stream."""
+    """当 scrcpy-server 显式禁用媒体流时抛出。"""
 
 
 class StreamConfigurationError(ProtocolError):
-    """Raised when scrcpy-server reports a media stream configuration error."""
+    """当 scrcpy-server 报告媒体流配置错误时抛出。"""
 
 
 def u16be(value: int) -> bytes:
@@ -65,7 +65,7 @@ async def read_exact(reader: asyncio.StreamReader, size: int) -> bytes:
     try:
         return await reader.readexactly(size)
     except asyncio.IncompleteReadError as exc:
-        raise EOFError(f"expected {size} bytes, got {len(exc.partial)}") from exc
+        raise EOFError(f"期望 {size} 字节，实际获取 {len(exc.partial)} 字节") from exc
 
 
 def utf8_truncate(text: str, max_bytes: int) -> bytes:
@@ -88,7 +88,7 @@ def string32(text: str, max_payload_len: int) -> bytes:
 
 def string8(text: str, max_payload_len: int = 255) -> bytes:
     if max_payload_len > 255:
-        raise ValueError("1-byte strings may not exceed 255 bytes")
+        raise ValueError("1字节字符串不能超过255字节")
     raw = utf8_truncate(text, max_payload_len)
     return bytes([len(raw)]) + raw
 

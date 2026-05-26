@@ -1,4 +1,4 @@
-﻿"""Async stream readers and writers for scrcpy-server v4.0."""
+﻿"""scrcpy-server v4.0 的异步流读取器和写入器。"""
 
 from __future__ import annotations
 
@@ -34,13 +34,13 @@ class BaseMediaStream:
     async def read_codec(self) -> CodecId:
         raw = read_u32be(await read_exact(self.reader, 4))
         if raw == 0:
-            raise StreamDisabledError(f"{self.kind.value} stream disabled by device")
+            raise StreamDisabledError(f"设备禁用了 {self.kind.value} 流")
         if raw == 1:
-            raise StreamConfigurationError(f"{self.kind.value} stream configuration error on device")
+            raise StreamConfigurationError(f"设备上 {self.kind.value} 流配置错误")
         try:
             codec = CodecId(raw)
         except ValueError as exc:
-            raise ProtocolError(f"unknown codec id: 0x{raw:08x}") from exc
+            raise ProtocolError(f"未知的编解码器ID: 0x{raw:08x}") from exc
         self.codec = codec
         return codec
 
@@ -54,11 +54,11 @@ class BaseMediaStream:
         assert self.codec is not None
         header = await read_exact(self.reader, PACKET_HEADER_SIZE)
         if header[0] & 0x80:
-            raise ProtocolError("unexpected video session packet on media stream")
+            raise ProtocolError("媒体流上出现意外的视频会话数据包")
         pts_flags = read_u64be(header, 0)
         size = read_u32be(header, 8)
         if size <= 0:
-            raise ProtocolError("invalid media packet size: 0")
+            raise ProtocolError("无效的媒体数据包大小: 0")
         payload = await read_exact(self.reader, size)
         config = bool(pts_flags & PACKET_FLAG_CONFIG)
         key_frame = bool(pts_flags & PACKET_FLAG_KEY_FRAME)
@@ -83,7 +83,7 @@ class VideoStream(BaseMediaStream):
             await self.read_codec()
         header = await read_exact(self.reader, PACKET_HEADER_SIZE)
         if not header[0] & 0x80:
-            raise ProtocolError("expected video session packet")
+            raise ProtocolError("期望视频会话数据包")
         session = VideoSession(
             width=read_u32be(header, 4),
             height=read_u32be(header, 8),
@@ -137,7 +137,7 @@ class VideoStream(BaseMediaStream):
         pts_flags = read_u64be(header, 0)
         size = read_u32be(header, 8)
         if size <= 0:
-            raise ProtocolError("invalid video packet size: 0")
+            raise ProtocolError("无效的视频数据包大小: 0")
         payload = await read_exact(self.reader, size)
         config = bool(pts_flags & PACKET_FLAG_CONFIG)
         key_frame = bool(pts_flags & PACKET_FLAG_KEY_FRAME)
@@ -226,17 +226,16 @@ class ControlStream:
         action_button: int = 0,
         buttons: int = 0,
     ) -> int | None:
-        """Send a touch event with automatic pointer ID management.
+        """发送带有自动指针ID管理的触摸事件。
 
-        On ``ACTION_DOWN``: if *pointer_id* is ``None``, a new ID is
-        allocated from ``self.pointer_manager``. The final pointer_id
-        is returned (or ``None`` if allocation failed).
+        在 ``ACTION_DOWN`` 时：如果 *pointer_id* 是 ``None``，则从
+        ``self.pointer_manager`` 分配一个新ID。返回最终的 pointer_id
+        （如果分配失败则返回 ``None``）。
 
-        On ``ACTION_UP``: the given *pointer_id* is released back to
-        the pool after sending.
+        在 ``ACTION_UP`` 时：发送后将给定的 *pointer_id* 释放回池。
 
-        When ``self.pointer_manager`` is ``None``, falls back to the
-        default ``POINTER_ID_GENERIC_FINGER``.
+        当 ``self.pointer_manager`` 为 ``None`` 时，回退到默认的
+        ``POINTER_ID_GENERIC_FINGER``。
         """
         pm = self.pointer_manager
 
@@ -288,7 +287,7 @@ class ControlStream:
 
 
 class AudioVideoCombinedStream:
-    """A local virtual stream merging video and audio events from official sockets."""
+    """从官方套接字合并视频和音频事件的本地虚拟流。"""
 
     def __init__(self, video: VideoStream | None, audio: AudioStream | None) -> None:
         self.video = video

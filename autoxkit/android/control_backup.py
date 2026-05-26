@@ -1,4 +1,4 @@
-"""Control and device-message serializers for scrcpy-server v4.0."""
+"""scrcpy-server v4.0 的控制消息和设备消息序列化器。"""
 
 from __future__ import annotations
 
@@ -120,7 +120,7 @@ def empty(message_type: ControlMessageType) -> ControlMessage:
         ControlMessageType.CAMERA_ZOOM_IN,
         ControlMessageType.CAMERA_ZOOM_OUT,
     }:
-        raise ValueError(f"{message_type.name} is not an empty control message")
+        raise ValueError(f"{message_type.name} 不是空控制消息")
     return ControlMessage(message_type, bytes([message_type]))
 
 
@@ -166,7 +166,7 @@ def deserialize_device_message(buffer: bytes) -> tuple[DeviceMessage | None, int
     try:
         message_type = DeviceMessageType(buffer[0])
     except ValueError as exc:
-        raise ProtocolError(f"unknown device message type: {buffer[0]}") from exc
+        raise ProtocolError(f"未知的设备消息类型: {buffer[0]}") from exc
 
     if message_type is DeviceMessageType.CLIPBOARD:
         if len(buffer) < 5:

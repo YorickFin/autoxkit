@@ -1,4 +1,4 @@
-"""High-level scrcpy-server v4.0 client facade."""
+"""高级 scrcpy-server v4.0 客户端外观类。"""
 
 from __future__ import annotations
 
@@ -15,7 +15,7 @@ from .streams import AudioStream, AudioVideoCombinedStream, ControlStream, DEVIC
 
 @dataclass(slots=True)
 class ScrcpyOptions:
-    """Options used to launch and connect to scrcpy-server v4.0."""
+    """用于启动和连接 scrcpy-server v4.0 的选项。"""
 
     serial: str | None = None
     adb_path: Path = Path("scrcpy-win64-v4.0") / "adb.exe"
@@ -32,87 +32,83 @@ class ScrcpyOptions:
     push_server: bool = True
     merge_video_config_packets: bool = True
     tcpip: bool = False
-    """Enable ADB-over-TCP/IP before starting scrcpy-server.
+    """在启动 scrcpy-server 之前启用 ADB-over-TCP/IP。
 
-    If ``tcpip_dst`` is set, the client runs ``adb connect`` to that address
-    and uses it as the device serial. If ``tcpip_dst`` is not set, the client
-    assumes a USB device is currently selected, reads its WLAN IP address from
-    ``adb shell ip route``, runs ``adb tcpip <tcpip_port>``, then connects to
-    ``<device-ip>:<tcpip_port>``.
+    如果设置了 ``tcpip_dst``，客户端运行 ``adb connect`` 连接到该地址，
+    并将其用作设备序列号。如果未设置 ``tcpip_dst``，客户端
+    假设当前选择了一个 USB 设备，从 ``adb shell ip route`` 读取其 WLAN IP 地址，
+    运行 ``adb tcpip <tcpip_port>``，然后连接到 ``<device-ip>:<tcpip_port>``。
     """
 
     tcpip_dst: str | None = None
-    """Known wireless ADB address.
+    """已知的无线 ADB 地址。
 
-    Accepted forms are ``"192.168.1.23"`` and ``"192.168.1.23:5555"``. If the
-    port is omitted, ``tcpip_port`` is appended.
+    接受的格式为 ``"192.168.1.23"`` 和 ``"192.168.1.23:5555"``。如果省略端口，
+    则会附加 ``tcpip_port``。
     """
 
     tcpip_port: int = 5555
-    """Wireless ADB TCP port used for ``adb tcpip`` and default address ports."""
+    """用于 ``adb tcpip`` 和默认地址端口的无线 ADB TCP 端口。"""
 
     tcpip_disconnect_existing: bool = False
-    """Run ``adb disconnect <address>`` before ``adb connect <address>``."""
+    """在 ``adb connect <address>`` 之前运行 ``adb disconnect <address>``。"""
 
     server_args: list[str] = field(default_factory=list)
-    """Additional raw ``key=value`` arguments passed to ``scrcpy-server``.
+    """传递给 ``scrcpy-server`` 的额外原始 ``key=value`` 参数。
 
-    These values are appended after the arguments managed directly by
-    ``ScrcpyClient``. Avoid overriding managed keys (``scid``, ``log_level``,
-    ``video``, ``audio``, ``control`` and ``tunnel_forward``) unless you also
-    update the Python-side connection logic accordingly.
+    这些值会附加在 ``ScrcpyClient`` 直接管理的参数之后。除非你也相应地更新了
+    Python 端的连接逻辑，否则避免覆盖已管理的键（``scid``、``log_level``、
+    ``video``、``audio``、``control`` 和 ``tunnel_forward``）。
 
-    Common scrcpy-server v4.0 values:
+    scrcpy-server v4.0 的常见值：
 
-    - ``video_codec``: ``h264``, ``h265`` or ``av1``.
-    - ``audio_codec``: ``opus``, ``aac``, ``flac`` or ``raw``.
-    - ``video_source``: ``display`` or ``camera``.
-    - ``audio_source``: ``output``, ``mic``, ``playback``,
-      ``mic-unprocessed``, ``mic-camcorder``, ``mic-voice-recognition``,
-      ``mic-voice-communication``, ``voice-call``, ``voice-call-uplink``,
-      ``voice-call-downlink`` or ``voice-performance``.
-    - ``video_bit_rate`` / ``audio_bit_rate``: integer bit rate in bits/s.
-    - ``max_size``: integer max video dimension, ``0`` for no limit.
-    - ``max_fps``: float/integer FPS string, for example ``30`` or ``60``.
-    - ``min_size_alignment``: ``1``, ``2``, ``4``, ``8`` or ``16``.
-    - ``angle``: float degrees string.
-    - ``crop``: ``width:height:x:y``.
+    - ``video_codec``: ``h264``、``h265`` 或 ``av1``。
+    - ``audio_codec``: ``opus``、``aac``、``flac`` 或 ``raw``。
+    - ``video_source``: ``display`` 或 ``camera``。
+    - ``audio_source``: ``output``、``mic``、``playback``、
+      ``mic-unprocessed``、``mic-camcorder``、``mic-voice-recognition``、
+      ``mic-voice-communication``、``voice-call``、``voice-call-uplink``、
+      ``voice-call-downlink`` 或 ``voice-performance``。
+    - ``video_bit_rate`` / ``audio_bit_rate``: 整数比特率（单位：比特/秒）。
+    - ``max_size``: 整数最大视频尺寸，``0`` 表示无限制。
+    - ``max_fps``: 浮点数/整数 FPS 字符串，例如 ``30`` 或 ``60``。
+    - ``min_size_alignment``: ``1``、``2``、``4``、``8`` 或 ``16``。
+    - ``angle``: 浮点度数字符串。
+    - ``crop``: ``width:height:x:y``。
     - ``video_codec_options`` / ``audio_codec_options``:
-      comma-separated MediaCodec options, ``key[:type]=value``.
-    - ``video_encoder`` / ``audio_encoder``: Android encoder name.
-    - ``display_id``: integer display id.
-    - ``new_display``: empty string, ``widthxheight``, ``/dpi`` or
-      ``widthxheight/dpi``.
-    - ``flex_display``: boolean.
-    - ``display_ime_policy``: ``local``, ``fallback`` or ``hide``.
-    - ``vd_destroy_content`` / ``vd_system_decorations``: boolean.
-    - ``capture_orientation``: orientation name, optionally prefixed with
-      ``@`` to lock it; ``@`` alone locks the initial orientation.
-    - ``camera_id``: camera id string.
-    - ``camera_size``: ``widthxheight``.
-    - ``camera_facing``: ``front``, ``back`` or ``external``.
-    - ``camera_ar``: ``sensor``, ``width:height`` or a float ratio.
-    - ``camera_fps``: integer FPS.
+      逗号分隔的 MediaCodec 选项，``key[:type]=value``。
+    - ``video_encoder`` / ``audio_encoder``: Android 编码器名称。
+    - ``display_id``: 整数显示 ID。
+    - ``new_display``: 空字符串、``widthxheight``、``/dpi`` 或
+      ``widthxheight/dpi``。
+    - ``flex_display``: 布尔值。
+    - ``display_ime_policy``: ``local``、``fallback`` 或 ``hide``。
+    - ``vd_destroy_content`` / ``vd_system_decorations``: 布尔值。
+    - ``capture_orientation``: 方向名称，可选择以 ``@`` 前缀锁定；``@`` 单独使用锁定初始方向。
+    - ``camera_id``: 相机 ID 字符串。
+    - ``camera_size``: ``widthxheight``。
+    - ``camera_facing``: ``front``、``back`` 或 ``external``。
+    - ``camera_ar``: ``sensor``、``width:height`` 或浮点比率。
+    - ``camera_fps``: 整数 FPS。
     - ``camera_high_speed`` / ``camera_torch`` / ``audio_dup`` /
       ``show_touches`` / ``stay_awake`` / ``power_off_on_close`` /
       ``clipboard_autosync`` / ``downsize_on_error`` / ``cleanup`` /
-      ``power_on`` / ``keep_active``: boolean.
-    - ``screen_off_timeout``: integer milliseconds, or ``-1`` for unchanged.
-    - ``list_encoders``, ``list_displays``, ``list_cameras``,
-      ``list_camera_sizes`` and ``list_apps``: boolean listing modes.
-    - ``send_device_meta``, ``send_frame_meta``, ``send_dummy_byte``,
-      ``send_stream_meta`` and ``raw_stream``: protocol/testing booleans.
+      ``power_on`` / ``keep_active``: 布尔值。
+    - ``screen_off_timeout``: 整数毫秒，或 ``-1`` 表示不变。
+    - ``list_encoders``、``list_displays``、``list_cameras``、
+      ``list_camera_sizes`` 和 ``list_apps``: 布尔值列表模式。
+    - ``send_device_meta``、``send_frame_meta``、``send_dummy_byte``、
+      ``send_stream_meta`` 和 ``raw_stream``: 协议/测试布尔值。
 
-    Booleans are passed as ``true`` or ``false``. Values must use
-    scrcpy-server v4.0 option names and wire formats; no validation or shell
-    escaping is performed by this client.
+    布尔值传递为 ``true`` 或 ``false``。值必须使用 scrcpy-server v4.0 的选项名称和
+    有线格式；此客户端不执行任何验证或 shell 转义。
     """
 
 
 class ScrcpyClient:
     def __init__(self, options: ScrcpyOptions) -> None:
         if not (options.video or options.audio or options.control):
-            raise ValueError("at least one of video, audio or control must be enabled")
+            raise ValueError("必须至少启用 video、audio 或 control 中的一项")
         self.options = options
         self.scid = options.scid if options.scid is not None else random.getrandbits(31)
         self.socket_name = f"scrcpy_{self.scid:08x}"
@@ -132,10 +128,10 @@ class ScrcpyClient:
         if self.options.push_server:
             await self.launcher.push_server()
 
-        # Auto-detect TCP/IP (wireless) serials — ADB reverse does not
-        # work over wireless ADB, so fall back to forward tunnel automatically.
+        # 自动检测 TCP/IP（无线）序列号 — ADB reverse 在无线 ADB 上不工作，
+        # 因此自动回退到正向隧道。
         if self._is_tcpip_address(self.launcher.serial) and not self.options.tunnel_forward:
-            print("TCP/IP device detected, using adb forward tunnel")
+            print("检测到 TCP/IP 设备，使用 adb forward 隧道")
             await self._start_forward()
         elif self.options.tunnel_forward:
             await self._start_forward()
@@ -193,14 +189,14 @@ class ScrcpyClient:
 
     @staticmethod
     def _is_tcpip_address(serial: str | None) -> bool:
-        """Return True if the serial looks like a TCP/IP address (ip:port)."""
+        """如果序列号看起来像 TCP/IP 地址（ip:port），返回 True。"""
         return serial is not None and ":" in serial
 
     async def _start_reverse(self) -> None:
         self._tcp_server = await asyncio.start_server(self._on_accept, self.options.host, self.options.port)
         sockets = self._tcp_server.sockets or []
         if not sockets:
-            raise RuntimeError("failed to create local server socket")
+            raise RuntimeError("无法创建本地服务器套接字")
         self._port = int(sockets[0].getsockname()[1])
         await self.launcher.reverse(self.socket_name, self._port)
         self._server_process = await self._start_server_process(tunnel_forward=False)
@@ -208,11 +204,11 @@ class ScrcpyClient:
 
     async def _start_forward(self) -> None:
         self._port = self.options.port or 27183
-        # Remove any stale forward mapping first to avoid conflicts
+        # 首先移除任何陈旧的正向映射以避免冲突
         await self.launcher.remove_forward(self._port)
         await self.launcher.forward(self.socket_name, self._port)
         self._server_process = await self._start_server_process(tunnel_forward=True)
-        # Give the server time to create the LocalServerSocket before connecting
+        # 在连接之前给服务器时间创建 LocalServerSocket
         await asyncio.sleep(1)
         await self._connect_streams(read_dummy_byte=True)
 
@@ -251,7 +247,7 @@ class ScrcpyClient:
             except OSError as exc:
                 last_error = exc
                 await asyncio.sleep(0.1)
-        raise ConnectionError(f"could not connect to forwarded scrcpy socket: {last_error}")
+        raise ConnectionError(f"无法连接到转发的 scrcpy 套接字: {last_error}")
 
     async def _assign_streams(
         self,

@@ -1,4 +1,4 @@
-"""Protocol data models for scrcpy-server v4.0."""
+"""scrcpy-server v4.0 的协议数据模型。"""
 
 from __future__ import annotations
 

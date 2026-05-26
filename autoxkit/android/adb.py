@@ -1,4 +1,4 @@
-"""ADB launcher for scrcpy-server v4.0."""
+"""ADB 启动器，用于 scrcpy-server v4.0."""
 
 from __future__ import annotations
 
@@ -40,33 +40,33 @@ class AdbServerLauncher:
         await self._adb("tcpip", str(port))
 
     async def get_device_ip(self) -> str:
-        """Parse the Wi-Fi IP address from `adb shell ip route`.
+        """从 `adb shell ip route` 解析 Wi-Fi IP 地址。
 
-        Only considers lines where the interface name starts with ``wlan``,
-        matching the official scrcpy behavior to skip non-Wi-Fi interfaces
-        such as rmnet_data (mobile data) or usb0 (USB tethering).
+        仅考虑接口名称以 ``wlan`` 开头的行，
+        与官方 scrcpy 行为一致，跳过非 Wi-Fi 接口，
+        例如 rmnet_data（移动数据）或 usb0（USB 共享网络）。
         """
         route = await self.shell_output("ip", "route")
         for line in route.splitlines():
-            # Look for lines like:
+            # 查找类似如下的行：
             #   192.168.1.0/24 dev wlan0  proto kernel  scope link  src 192.168.1.x
             fields = line.split()
             for i, field in enumerate(fields):
                 if field == "dev" and i + 1 < len(fields) and fields[i + 1].startswith("wlan"):
-                    # Found a wlan line, extract the src IP
+                    # 找到 wlan 行，提取源 IP
                     for j, f in enumerate(fields):
                         if f == "src" and j + 1 < len(fields):
                             ip = fields[j + 1]
                             if re.match(r"^\d{1,3}(\.\d{1,3}){3}$", ip):
                                 return ip
         raise AdbError(
-            f"could not find Wi-Fi (wlan) device ip in `adb shell ip route`: {route.strip()}"
+            f"在 `adb shell ip route` 中找不到 Wi-Fi（wlan）设备的 IP: {route.strip()}"
         )
 
     async def discover_usb_serial(self) -> str | None:
-        """Discover the serial of a single USB-connected device.
+        """发现单个 USB 连接设备的序列号。
 
-        Returns None if there is no USB device, or if there are multiple.
+        如果没有 USB 设备或有多个设备，则返回 None。
         """
         proc = await asyncio.create_subprocess_exec(
             str(self.adb_path),
@@ -80,7 +80,7 @@ class AdbServerLauncher:
 
         usb_serials = []
         for line in out.splitlines():
-            # Skip empty lines and the "List of devices attached" header
+            # 跳过空行和 "List of devices attached" 标题行
             if not line.strip() or not line[0].isalnum():
                 continue
             parts = line.split()
@@ -90,8 +90,8 @@ class AdbServerLauncher:
             state = parts[1]
             if state != "device":
                 continue
-            # USB devices have serials without ":"
-            # TCP/IP devices have format ip:port
+            # USB 设备的序列号不包含 ":"
+            # TCP/IP 设备的格式为 ip:port
             if ":" not in serial:
                 usb_serials.append(serial)
 

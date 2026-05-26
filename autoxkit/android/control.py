@@ -1,4 +1,4 @@
-﻿"""Control and device-message serializers for scrcpy-server v4.0."""
+﻿"""scrcpy-server v4.0 的控制消息和设备消息序列化器。"""
 
 from __future__ import annotations
 
@@ -33,10 +33,10 @@ MAX_TOUCH_POINTERS = 10
 
 
 class PointerManager:
-    """Manages a pool of unique pointer IDs for multi-touch.
+    """管理多点触控的唯一指针 ID 池。
 
-    Allocates pointer IDs from 0 upward, up to `MAX_TOUCH_POINTERS`
-    concurrent touches. IDs are reused when released.
+    从 0 开始分配指针 ID，最多支持 `MAX_TOUCH_POINTERS` 个并发触摸。
+    释放后 ID 可被重用。
     """
 
     def __init__(self) -> None:
@@ -45,10 +45,10 @@ class PointerManager:
         self._active: set[int] = set()
 
     def allocate(self) -> int | None:
-        """Allocate a unique pointer ID.
+        """分配一个唯一的指针 ID。
 
-        Returns an integer pointer ID, or `None` if the maximum number
-        of concurrent touches (`MAX_TOUCH_POINTERS`) has been reached.
+        返回一个整数指针 ID，如果已达到最大并发触摸数 (`MAX_TOUCH_POINTERS`)，
+        则返回 `None`。
         """
         if len(self._active) >= MAX_TOUCH_POINTERS:
             return None
@@ -61,23 +61,23 @@ class PointerManager:
         return pid
 
     def release(self, pointer_id: int) -> None:
-        """Release a previously allocated pointer ID back to the pool."""
+        """将之前分配的指针 ID 释放回池中。"""
         if pointer_id in self._active:
             self._active.discard(pointer_id)
             self._freed.append(pointer_id)
 
     def reset(self) -> None:
-        """Release all active pointer IDs."""
+        """释放所有活跃的指针 ID。"""
         self._active.clear()
         self._freed.clear()
         self._next_id = 0
 
     def active_count(self) -> int:
-        """Return the number of currently active pointer IDs."""
+        """返回当前活跃的指针 ID 数量。"""
         return len(self._active)
 
     def active_ids(self) -> set[int]:
-        """Return the set of currently active pointer IDs."""
+        """返回当前活跃的指针 ID 集合。"""
         return set(self._active)
 
 
@@ -172,7 +172,7 @@ def empty(message_type: ControlMessageType) -> ControlMessage:
         ControlMessageType.CAMERA_ZOOM_IN,
         ControlMessageType.CAMERA_ZOOM_OUT,
     }:
-        raise ValueError(f"{message_type.name} is not an empty control message")
+        raise ValueError(f"{message_type.name} 不是一个空控制消息")
     return ControlMessage(message_type, bytes([message_type]))
 
 
@@ -218,7 +218,7 @@ def deserialize_device_message(buffer: bytes) -> tuple[DeviceMessage | None, int
     try:
         message_type = DeviceMessageType(buffer[0])
     except ValueError as exc:
-        raise ProtocolError(f"unknown device message type: {buffer[0]}") from exc
+        raise ProtocolError(f"未知的设备消息类型: {buffer[0]}") from exc
 
     if message_type is DeviceMessageType.CLIPBOARD:
         if len(buffer) < 5:
