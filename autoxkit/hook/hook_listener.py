@@ -1,12 +1,15 @@
-
 # hook_listener.py
 import ctypes
 from ctypes import wintypes, Structure, POINTER, CFUNCTYPE, byref
 import threading
+import time
 from .event import KeyEvent, MouseEvent
 from ..constants import Hex_Hook_Code
 
 HHC = Hex_Hook_Code
+
+# 消息泵空闲轮询间隔（秒），无消息时休眠此时间以释放 CPU
+MSG_POLL_INTERVAL = 0.001
 
 # ---------- 结构体定义 ----------
 class KBDLLHOOKSTRUCT(Structure):
@@ -30,7 +33,7 @@ class MSLLHOOKSTRUCT(Structure):
 # ---------- 回调类型 ----------
 HOOKPROC = CFUNCTYPE(ctypes.c_long, ctypes.c_int, wintypes.WPARAM, wintypes.LPARAM)
 
-# ---------- 加载 DLL 并声明 API 签名（你指出必须有的部分） ----------
+# ---------- 加载 DLL 并声明 API 签名 ----------
 user32 = ctypes.WinDLL('user32', use_last_error=True)
 kernel32 = ctypes.WinDLL('kernel32', use_last_error=True)
 
@@ -163,7 +166,9 @@ class HookListener:
                             if result is True:
                                 return 1  # 截断事件传播
                         except ValueError as e:
-                            raise e
+                            print(f"[hook_listener] ValueError in keydown callback: {e}", file=__import__('sys').stderr)
+                        except Exception as e:
+                            print(f"[hook_listener] Exception in keydown callback: {e}", file=__import__('sys').stderr)
                 elif wParam in (HHC["KeyUp"], HHC["SysKeyUp"]):
                     event = KeyEvent('KeyUp', kbd.vkCode)
                     for cb in self._on_keyup:
@@ -172,9 +177,11 @@ class HookListener:
                             if result is True:
                                 return 1  # 截断事件传播
                         except ValueError as e:
-                            raise e
+                            print(f"[hook_listener] ValueError in keyup callback: {e}", file=__import__('sys').stderr)
+                        except Exception as e:
+                            print(f"[hook_listener] Exception in keyup callback: {e}", file=__import__('sys').stderr)
             except Exception as e:
-                raise e
+                print(f"[hook_listener] Exception in _keyboard_proc: {e}", file=__import__('sys').stderr)
 
         return user32.CallNextHookEx(self.keyboard_hook, nCode, wParam, lParam)
 
@@ -194,7 +201,7 @@ class HookListener:
                             if result is True:
                                 return 1  # 截断事件传播
                         except Exception as e:
-                            raise e
+                            print(f"[hook_listener] Exception in mousedown callback: {e}", file=__import__('sys').stderr)
 
                 elif wParam in (HHC["MLeftUp"], HHC["MRightUp"], HHC["MiddleUp"], HHC["XUp"]):
                     button = self._get_mouse_button(wParam, ms.mouseData)
@@ -205,9 +212,9 @@ class HookListener:
                             if result is True:
                                 return 1  # 截断事件传播
                         except Exception as e:
-                            raise e
+                            print(f"[hook_listener] Exception in mouseup callback: {e}", file=__import__('sys').stderr)
             except Exception as e:
-                raise e
+                print(f"[hook_listener] Exception in _mouse_proc: {e}", file=__import__('sys').stderr)
 
         return user32.CallNextHookEx(self.mouse_hook, nCode, wParam, lParam)
 
@@ -276,9 +283,12 @@ class HookListener:
                 if user32.PeekMessageW(byref(msg), 0, 0, 0, 1):  # PM_REMOVE = 1
                     user32.TranslateMessage(byref(msg))
                     user32.DispatchMessageW(byref(msg))
+                else:
+                    # 无消息时休眠，避免 CPU 忙等
+                    time.sleep(MSG_POLL_INTERVAL)
             except Exception:
                 # 记录异常但不退出循环，确保钩子持续工作
-                # 回调中的异常应由上层自行处理
+                print("[hook_listener] Exception in message pump", file=__import__('sys').stderr)
                 continue
 
         # 离开循环之前确保取消钩子
