@@ -76,6 +76,7 @@ class HookListener:
         self._on_keyup = []
         self._on_mousedown = []
         self._on_mouseup = []
+        self._on_mousemove = []
 
         # 钩子与线程状态
         self._thread = None
@@ -110,6 +111,8 @@ class HookListener:
             self._on_mousedown.append(func)
         elif event_type == "mouseup":
             self._on_mouseup.append(func)
+        elif event_type == "mousemove":
+            self._on_mousemove.append(func)
         else:
             raise ValueError("unknown event_type: " + str(event_type))
 
@@ -133,6 +136,8 @@ class HookListener:
             target = self._on_mousedown
         elif event_type == "mouseup":
             target = self._on_mouseup
+        elif event_type == "mousemove":
+            target = self._on_mousemove
         else:
             raise ValueError("unknown event_type: " + str(event_type))
         try:
@@ -192,7 +197,17 @@ class HookListener:
                 ms = ctypes.cast(lParam, POINTER(MSLLHOOKSTRUCT)).contents
                 x, y = ms.pt.x, ms.pt.y
 
-                if wParam in (HHC["MLeftDown"], HHC["MRightDown"], HHC["MiddleDown"], HHC["XDown"]):
+                if wParam == 0x0200:  # WM_MOUSEMOVE
+                    event = MouseEvent("MouseMove", None, x, y)
+                    for cb in self._on_mousemove:
+                        try:
+                            result = cb(event)
+                            if result is True:
+                                return 1  # 截断事件传播
+                        except Exception as e:
+                            print(f"[hook_listener] Exception in mousemove callback: {e}", file=__import__('sys').stderr)
+
+                elif wParam in (HHC["MLeftDown"], HHC["MRightDown"], HHC["MiddleDown"], HHC["XDown"]):
                     button = self._get_mouse_button(wParam, ms.mouseData)
                     event = MouseEvent("MouseDown", button, x, y)
                     for cb in self._on_mousedown:

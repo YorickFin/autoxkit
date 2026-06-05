@@ -21,13 +21,13 @@ class MouseEvent:
     """
         鼠标事件
     Args:
-        action (str): 事件类型，"MouseDown"或"MouseUp"
-        button (str): 鼠标按钮，"MLeft"、"MRight"、"MMiddle"、"side1"、"side2"
+        action (str): 事件类型，"MouseDown"、"MouseUp"或"MouseMove"
+        button (str): 鼠标按钮，"MLeft"、"MRight"、"MMiddle"、"MSide1"、"MSide2"，MouseMove时为None
         x (int): 鼠标x坐标
         y (int): 鼠标y坐标
     Attributes:
-        action (str): 事件类型，"MouseDown"或"MouseUp"
-        button (str): 鼠标按钮，"MLeft"、"MRight"、"MMiddle"、"side1"、"side2"
+        action (str): 事件类型，"MouseDown"、"MouseUp"或"MouseMove"
+        button (str): 鼠标按钮，"MLeft"、"MRight"、"MMiddle"、"MSide1"、"MSide2"，MouseMove时为None
         position (tuple): 鼠标位置，(x, y)格式
     """
     def __init__(self, action, button, x, y):
