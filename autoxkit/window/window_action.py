@@ -331,11 +331,11 @@ class WindowAction:
             # 等待一段时间
             time.sleep(step_interval)
 
-    def send_mouse_wheel(self, amount: int, x: int=None, y: int=None, mode='send'):
+    def send_mouse_wheel(self, distance: int, x: int=None, y: int=None, mode='send'):
         """
             发送鼠标滚轮消息
         Args:
-            amount (int): 滚动距离(正值向上，负值向下)
+            distance (int): 滚动距离(正值向上，负值向下)
             mode (str): 发送模式，'send', 'post', 'global'。默认 'send'
         """
         if not self.hwnd:
@@ -343,9 +343,9 @@ class WindowAction:
 
         if mode == 'global':
             if x is None or y is None:
-                self.mouse.mouse_wheel(amount=amount)
+                self.mouse.mouse_wheel(distance=distance)
             else:
-                self.mouse.mouse_wheel(self.client_point.x + x, self.client_point.y + y, amount)
+                self.mouse.mouse_wheel(self.client_point.x + x, self.client_point.y + y, distance)
             return
 
         # 获取当前鼠标位置（使用记录的位置，如果没有则使用窗口中心）
@@ -365,7 +365,7 @@ class WindowAction:
         # 确保使用屏幕坐标
         lparam = MAKELPARAM(x, y)
         # 高16位是滚轮滚动量，低16位是鼠标状态
-        wparam = (amount << 16) | (self.mouse_state & 0xFFFF)
+        wparam = ((distance * 120) << 16) | (self.mouse_state & 0xFFFF)
 
         if mode == 'post':
             PostMessage(self.hwnd, WM_MOUSEWHEEL, wparam, lparam)

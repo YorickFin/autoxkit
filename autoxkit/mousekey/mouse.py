@@ -114,18 +114,18 @@ class Mouse:
 
             time.sleep(step_interval)
 
-    def wheel_scroll(self, amount: int, x: int=None, y: int=None):
+    def mouse_wheel(self, distance: int, x: int=None, y: int=None):
         """
             垂直滚轮滚动
         Args:
             x (int): 目标X坐标
             y (int): 目标Y坐标
-            amount (int): 滚动距离(正值向上，负值向下)
+            distance (int): 滚动距离(正值向上，负值向下)
         """
         x, y = self._verify_mouse_point(x, y)
         if x is not None and y is not None:
             self.mouse_move(x, y, steps=1)
-        self._mouse_action(HMC["Wheel"], data=amount * 10)
+        self._mouse_action(HMC["Wheel"], data=distance * 120)
 
     def get_mouse_position(self):
         """

@@ -227,11 +227,34 @@ class HookListener:
                             if result is True:
                                 return 1  # 截断事件传播
                         except Exception as e:
-                            print(f"[hook_listener] Exception in mouseup callback: {e}", file=__import__('sys').stderr)
+                            print(f"[hook_listener] Exception in mouseup callback: {e}", file=__import__("sys").stderr)
+
+                elif wParam == HHC["MWheel"]:
+                    delta = ctypes.c_short(ms.mouseData >> 16).value
+                    if delta > 0:
+                        event = MouseEvent("MouseUp", "MUWheel", x, y, distance=delta)
+                        for cb in self._on_mouseup:
+                            try:
+                                result = cb(event)
+                                if result is True:
+                                    return 1
+                            except Exception as e:
+                                print(f"[hook_listener] Exception in mouseup callback: {e}", file=__import__("sys").stderr)
+                    elif delta < 0:
+                        event = MouseEvent("MouseDown", "MDWheel", x, y, distance=delta)
+                        for cb in self._on_mousedown:
+                            try:
+                                result = cb(event)
+                                if result is True:
+                                    return 1
+                            except Exception as e:
+                                print(f"[hook_listener] Exception in mousedown callback: {e}", file=__import__("sys").stderr)
+
             except Exception as e:
-                print(f"[hook_listener] Exception in _mouse_proc: {e}", file=__import__('sys').stderr)
+                print(f"[hook_listener] Exception in _mouse_proc: {e}", file=__import__("sys").stderr)
 
         return user32.CallNextHookEx(self.mouse_hook, nCode, wParam, lParam)
+
 
     # 辅助函数：获取鼠标按键名称
     def _get_mouse_button(self, wParam, mouseData):

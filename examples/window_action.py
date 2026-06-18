@@ -30,8 +30,8 @@ def window_action():
     # window.send_left_click(100, 100)
 
     # 鼠标 滚轮滚动
-    # window.send_mouse_wheel(100)
-    # window.send_mouse_wheel(-100)
+    # window.send_mouse_wheel(5)
+    # window.send_mouse_wheel(-5)
 
     # 发送文字, 需要先点击输入框
     window.send_left_click(500, 660)

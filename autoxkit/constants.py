@@ -45,6 +45,7 @@ Hex_Hook_Code = {
     "Key_LL": 0x000D,
     "KeyDown": 0x0100, "KeyUp": 0x0101, "SysKeyDown": 0x0104, "SysKeyUp": 0x0105,
     "Mouse_LL": 0x000E,
+    "MWheel": 0x020A,
     "MLeftDown": 0x0201, "MLeftUp": 0x0202,
     "MRightDown": 0x0204, "MRightUp": 0x0205,
     "MiddleDown": 0x0207, "MiddleUp": 0x0208,
