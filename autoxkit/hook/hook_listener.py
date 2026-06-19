@@ -230,14 +230,14 @@ class HookListener:
                             print(f"[hook_listener] Exception in mouseup callback: {e}", file=__import__("sys").stderr)
 
                 elif wParam == HHC["MWheel"]:
-                    delta = ctypes.c_short(ms.mouseData >> 16).value
+                    delta = ctypes.c_short(ms.mouseData >> 16).value / 120
                     if delta > 0:
                         event = MouseEvent("MouseUp", "MUWheel", x, y, distance=delta)
                         for cb in self._on_mouseup:
                             try:
                                 result = cb(event)
                                 if result is True:
-                                    return 1
+                                    return 1  # 截断事件传播
                             except Exception as e:
                                 print(f"[hook_listener] Exception in mouseup callback: {e}", file=__import__("sys").stderr)
                     elif delta < 0:
@@ -246,7 +246,7 @@ class HookListener:
                             try:
                                 result = cb(event)
                                 if result is True:
-                                    return 1
+                                    return 1  # 截断事件传播
                             except Exception as e:
                                 print(f"[hook_listener] Exception in mousedown callback: {e}", file=__import__("sys").stderr)
 
