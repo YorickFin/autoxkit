@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "autoxkit"
-version = "2.4.2"
+version = "2.4.3"
 description = "Python library for Windows automation and Android device screen casting and control"
 readme = "README.md"
 requires-python = ">=3.10"

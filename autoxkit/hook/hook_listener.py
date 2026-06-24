@@ -232,23 +232,50 @@ class HookListener:
                 elif wParam == HHC["MWheel"]:
                     delta = ctypes.c_short(ms.mouseData >> 16).value / 120
                     if delta > 0:
+                        blocked = False
+                        event = MouseEvent("MouseDown", "MUWheel", x, y, distance=delta)
+                        for cb in self._on_mousedown:
+                            try:
+                                result = cb(event)
+                                if result is True:
+                                    blocked = True
+                            except Exception as e:
+                                print(f"[hook_listener] Exception in mousedown callback: {e}", file=__import__("sys").stderr)
+
                         event = MouseEvent("MouseUp", "MUWheel", x, y, distance=delta)
                         for cb in self._on_mouseup:
                             try:
                                 result = cb(event)
                                 if result is True:
-                                    return 1  # 截断事件传播
+                                    blocked = True
                             except Exception as e:
                                 print(f"[hook_listener] Exception in mouseup callback: {e}", file=__import__("sys").stderr)
+
+                        if blocked:
+                            return 1    # 截断事件传播
+
                     elif delta < 0:
+                        blocked = False
                         event = MouseEvent("MouseDown", "MDWheel", x, y, distance=delta)
                         for cb in self._on_mousedown:
                             try:
                                 result = cb(event)
                                 if result is True:
-                                    return 1  # 截断事件传播
+                                    blocked = True
                             except Exception as e:
                                 print(f"[hook_listener] Exception in mousedown callback: {e}", file=__import__("sys").stderr)
+
+                        event = MouseEvent("MouseUp", "MDWheel", x, y, distance=delta)
+                        for cb in self._on_mouseup:
+                            try:
+                                result = cb(event)
+                                if result is True:
+                                    blocked = True
+                            except Exception as e:
+                                print(f"[hook_listener] Exception in mouseup callback: {e}", file=__import__("sys").stderr)
+
+                        if blocked:
+                            return 1    # 截断事件传播
 
             except Exception as e:
                 print(f"[hook_listener] Exception in _mouse_proc: {e}", file=__import__("sys").stderr)

@@ -28,7 +28,6 @@ def mouse_up(event: MouseEvent):
     print(event.action, event.button, event.position, event.distance)
     return False
 
-
 def mouse_move(event: MouseEvent):
     print(event.action, event.button, event.position, event.distance)
     return False
