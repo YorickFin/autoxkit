@@ -212,6 +212,8 @@ class WindowAction:
         if mode == 'global':
             if x is None or y is None:
                 self.mouse.mouse_down(button=button)
+            elif x == -1 and y == -1:
+                self.mouse.mouse_down(x, y, button)
             else:
                 self.mouse.mouse_down(self.client_point.x + x, self.client_point.y + y, button)
             return
@@ -243,6 +245,8 @@ class WindowAction:
         if mode == 'global':
             if x is None or y is None:
                 self.mouse.mouse_up(button=button)
+            elif x == -1 and y == -1:
+                self.mouse.mouse_up(x, y, button)
             else:
                 self.mouse.mouse_up(self.client_point.x + x, self.client_point.y + y, button)
             return

@@ -38,6 +38,9 @@ class Mouse:
                 x, y = self.mouse_point
             else:
                 x, y = None, None
+        elif x == -1 and y == -1:
+            x, y = self.get_mouse_position()
+            self.mouse_point = (x, y)
         else:
             self.mouse_point = (x, y)
         return x, y

@@ -22,23 +22,25 @@ def window_action():
     # window.send_key_combination(["Lctrl", "A"])
 
     # 鼠标 按下和释放 [left, right, middle]
-    # window.send_left_down(100, 100)
+    # window.send_mouse_down(x=1270, y=540, button=0, mode="send")
     # time.sleep(0.02)
-    # window.send_left_up()
+    # window.send_mouse_up(x=1270, y=540, button=0, mode="send")
 
     # 鼠标 点击 [left, right, middle]
-    # window.send_left_click(100, 100)
+    # window.send_mouse_click(x=1270, y=540, button=0, mode="send")
+    # window.send_mouse_click(button=0, mode="send")  # 沿用最后一个鼠标位置
+    # window.send_mouse_click(x=-1, y=-1, button=0, mode="global")  # 使用当前鼠标位置
 
     # 鼠标 滚轮滚动
     # window.send_mouse_wheel(5)
     # window.send_mouse_wheel(-5)
 
     # 发送文字, 需要先点击输入框
-    window.send_left_click(500, 660)
-    time.sleep(1)
+    # window.send_left_click(500, 660)
+    # time.sleep(1)
     # window.send_left_click(167, 56)
     # time.sleep(1)
-    window.send_text("hello, World!")
+    # window.send_text("hello, World!")
 
 if __name__ == "__main__":
     window_action()
