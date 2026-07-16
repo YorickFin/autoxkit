@@ -64,6 +64,10 @@ user32.TranslateMessage.argtypes = [POINTER(wintypes.MSG)]
 user32.TranslateMessage.restype = wintypes.BOOL
 user32.DispatchMessageW.argtypes = [POINTER(wintypes.MSG)]
 user32.DispatchMessageW.restype = ctypes.c_long
+user32.GetMessageW.argtypes = [POINTER(wintypes.MSG), wintypes.HWND, wintypes.UINT, wintypes.UINT]
+user32.GetMessageW.restype = wintypes.BOOL
+user32.PostThreadMessageW.argtypes = [wintypes.DWORD, wintypes.UINT, wintypes.WPARAM, wintypes.LPARAM]
+user32.PostThreadMessageW.restype = wintypes.BOOL
 
 # ---------- HookListener 类 ----------
 class HookListener:
@@ -309,8 +313,9 @@ class HookListener:
     # 停止监听并取消钩子
     def stop(self):
         self._stop_event.set()
-        # 等待线程退出并且取消钩子
+        # 发送 WM_QUIT 消息唤醒 GetMessageW 阻塞
         if self._thread and self._thread.is_alive():
+            user32.PostThreadMessageW(self._thread.ident, 0x0012, 0, 0)
             self._thread.join(timeout=1.0)
         # 尝试取消钩子（若尚未取消）
         if self.keyboard_hook:
@@ -342,19 +347,12 @@ class HookListener:
             return
 
         msg = wintypes.MSG()
-        while not self._stop_event.is_set():
-            try:
-                # 使用 PeekMessageW 配合超时，以便可以检查 _stop_event
-                if user32.PeekMessageW(byref(msg), 0, 0, 0, 1):  # PM_REMOVE = 1
-                    user32.TranslateMessage(byref(msg))
-                    user32.DispatchMessageW(byref(msg))
-                else:
-                    # 无消息时休眠，避免 CPU 忙等
-                    time.sleep(MSG_POLL_INTERVAL)
-            except Exception:
-                # 记录异常但不退出循环，确保钩子持续工作
-                print("[hook_listener] Exception in message pump", file=__import__('sys').stderr)
-                continue
+        while True:
+            ret = user32.GetMessageW(byref(msg), 0, 0, 0)
+            if ret <= 0:
+                break
+            user32.TranslateMessage(byref(msg))
+            user32.DispatchMessageW(byref(msg))
 
         # 离开循环之前确保取消钩子
         if self.keyboard_hook:
