@@ -202,6 +202,8 @@ class HookListener:
                 x, y = ms.pt.x, ms.pt.y
 
                 if wParam == 0x0200:  # WM_MOUSEMOVE
+                    if not self._on_mousemove:
+                        return user32.CallNextHookEx(self.mouse_hook, nCode, wParam, lParam)
                     event = MouseEvent("MouseMove", None, x, y)
                     for cb in self._on_mousemove:
                         try:
