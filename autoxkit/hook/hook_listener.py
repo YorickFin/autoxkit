@@ -8,8 +8,8 @@ from ..constants import Hex_Hook_Code
 
 HHC = Hex_Hook_Code
 
-# 消息泵空闲轮询间隔（秒），无消息时休眠此时间以释放 CPU
-MSG_POLL_INTERVAL = 0.001
+# C 扩展：正确管理 GIL 的消息泵
+from . import _pump
 
 # ---------- 结构体定义 ----------
 class KBDLLHOOKSTRUCT(Structure):
@@ -80,7 +80,6 @@ class HookListener:
         self._on_keyup = []
         self._on_mousedown = []
         self._on_mouseup = []
-        self._on_mousemove = []
 
         # 钩子与线程状态
         self._thread = None
@@ -115,8 +114,6 @@ class HookListener:
             self._on_mousedown.append(func)
         elif event_type == "mouseup":
             self._on_mouseup.append(func)
-        elif event_type == "mousemove":
-            self._on_mousemove.append(func)
         else:
             raise ValueError("unknown event_type: " + str(event_type))
 
@@ -140,8 +137,6 @@ class HookListener:
             target = self._on_mousedown
         elif event_type == "mouseup":
             target = self._on_mouseup
-        elif event_type == "mousemove":
-            target = self._on_mousemove
         else:
             raise ValueError("unknown event_type: " + str(event_type))
         try:
@@ -201,19 +196,7 @@ class HookListener:
                 ms = ctypes.cast(lParam, POINTER(MSLLHOOKSTRUCT)).contents
                 x, y = ms.pt.x, ms.pt.y
 
-                if wParam == 0x0200:  # WM_MOUSEMOVE
-                    if not self._on_mousemove:
-                        return user32.CallNextHookEx(self.mouse_hook, nCode, wParam, lParam)
-                    event = MouseEvent("MouseMove", None, x, y)
-                    for cb in self._on_mousemove:
-                        try:
-                            result = cb(event)
-                            if result is True:
-                                return 1  # 截断事件传播
-                        except Exception as e:
-                            print(f"[hook_listener] Exception in mousemove callback: {e}", file=__import__('sys').stderr)
-
-                elif wParam in (HHC["MLeftDown"], HHC["MRightDown"], HHC["MiddleDown"], HHC["XDown"]):
+                if wParam in (HHC["MLeftDown"], HHC["MRightDown"], HHC["MiddleDown"], HHC["XDown"]):
                     button = self._get_mouse_button(wParam, ms.mouseData)
                     event = MouseEvent("MouseDown", button, x, y)
                     for cb in self._on_mousedown:
@@ -317,7 +300,7 @@ class HookListener:
         self._stop_event.set()
         # 发送 WM_QUIT 消息唤醒 GetMessageW 阻塞
         if self._thread and self._thread.is_alive():
-            user32.PostThreadMessageW(self._thread.ident, 0x0012, 0, 0)
+            _pump.post_quit(self._thread.ident)
             self._thread.join(timeout=1.0)
         # 尝试取消钩子（若尚未取消）
         if self.keyboard_hook:
@@ -348,13 +331,8 @@ class HookListener:
             self._stop_event.set()
             return
 
-        msg = wintypes.MSG()
-        while True:
-            ret = user32.GetMessageW(byref(msg), 0, 0, 0)
-            if ret <= 0:
-                break
-            user32.TranslateMessage(byref(msg))
-            user32.DispatchMessageW(byref(msg))
+        # C 扩展泵消息，GIL 在 GetMessageW 阻塞期间正确释放
+        _pump.pump_messages()
 
         # 离开循环之前确保取消钩子
         if self.keyboard_hook:

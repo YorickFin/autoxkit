@@ -1,7 +1,8 @@
 __pycache__/
 .vevn/
 .vscode/
-.dist/
+dist/
+build/
 autoxkit.egg-info/
 debug.py
 main.py

@@ -1,5 +1,8 @@
 from ..constants import Hex_Key_Code
 
+# 预构建 vkCode → name 反向字典
+_VK_TO_NAME = {v: k for k, v in Hex_Key_Code.items()}
+
 class KeyEvent:
     """
         键盘事件
@@ -14,8 +17,7 @@ class KeyEvent:
     def __init__(self, action, vk_code):
         self.action = action
         self.key_code = vk_code
-        name = next((k for k, v in Hex_Key_Code.items() if v == vk_code), None)
-        self.key_name = name if name else str(vk_code)
+        self.key_name = _VK_TO_NAME.get(vk_code, str(vk_code))
 
 class MouseEvent:
     """
