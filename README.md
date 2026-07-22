@@ -68,17 +68,11 @@ def mouse_up(event: MouseEvent):
     return False
 
 
-def mouse_move(event: MouseEvent):
-    print(event.action, event.button, event.position)
-    return False
-
-
 hook_listener = HookListener()
 hook_listener.add_handler('keydown', key_down)
 hook_listener.add_handler('keyup', key_up)
 hook_listener.add_handler('mousedown', mouse_down)
 hook_listener.add_handler('mouseup', mouse_up)
-hook_listener.add_handler('mousemove', mouse_move)
 hook_listener.start()
 
 print("当前鼠标位置:", hook_listener.get_mouse_position())

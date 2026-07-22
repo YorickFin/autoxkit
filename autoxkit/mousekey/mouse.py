@@ -10,8 +10,9 @@ SendInput = user32.SendInput
 
 class Mouse:
 
-    def __init__(self):
+    def __init__(self, compat=False):
         """初始化鼠标控制器"""
+        self.compat = compat
         self.mouse_point = tuple()
         self.screen_width = user32.GetSystemMetrics(0)
         self.screen_height = user32.GetSystemMetrics(1)
@@ -23,13 +24,24 @@ class Mouse:
             4: [HMC["XDown"], HMC["XUp"], HMC["MSide2"]],
         }
 
-    def _mouse_action(self, flags, x=0, y=0, data=0):
-        """执行鼠标动作的底层函数"""
+    def _mouse_action_compat(self, flags, x=0, y=0, data=0):
+        """执行鼠标动作的底层函数（兼容模式，使用 mouse_event API）"""
+        user32.mouse_event(flags, x, y, data, 0)
+
+    def _mouse_action_input(self, flags, x=0, y=0, data=0):
+        """执行鼠标动作的底层函数（SendInput 模式）"""
         extra = ctypes.c_ulong(0)
         ii_ = Input_I()
         ii_.mi = MouseInput(x, y, data, flags, 0, ctypes.pointer(extra))
         input_struct = Input(ctypes.c_ulong(0), ii_)
         SendInput(1, ctypes.pointer(input_struct), ctypes.sizeof(input_struct))
+
+    def _mouse_action(self, flags, x=0, y=0, data=0):
+        """执行鼠标动作的底层函数"""
+        if self.compat:
+            self._mouse_action_compat(flags, x, y, data)
+        else:
+            self._mouse_action_input(flags, x, y, data)
 
     def _verify_mouse_point(self, x: int=None, y: int=None):
         """验证鼠标坐标是否在屏幕范围内"""
