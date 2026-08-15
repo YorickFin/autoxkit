@@ -1,3 +1,5 @@
+
+
 # autoxkit
 
 [![PyPI version](https://img.shields.io/pypi/v/autoxkit.svg)](https://pypi.org/project/autoxkit/)
@@ -35,6 +37,8 @@ pip install autoxkit
 ```bash
 pip install .
 ```
+
+> 注：本项目要求 Python 3.10 或更高版本。
 
 ***
 
