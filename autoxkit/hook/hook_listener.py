@@ -8,9 +8,6 @@ from ..constants import Hex_Hook_Code
 
 HHC = Hex_Hook_Code
 
-# C 扩展：正确管理 GIL 的消息泵
-from . import _pump
-
 # ---------- 结构体定义 ----------
 class KBDLLHOOKSTRUCT(Structure):
     _fields_ = [
@@ -300,7 +297,7 @@ class HookListener:
         self._stop_event.set()
         # 发送 WM_QUIT 消息唤醒 GetMessageW 阻塞
         if self._thread and self._thread.is_alive():
-            _pump.post_quit(self._thread.ident)
+            user32.PostThreadMessageW(self._thread.ident, 0x0012, 0, 0)  # WM_QUIT
             self._thread.join(timeout=1.0)
         # 尝试取消钩子（若尚未取消）
         if self.keyboard_hook:
@@ -331,8 +328,11 @@ class HookListener:
             self._stop_event.set()
             return
 
-        # C 扩展泵消息，GIL 在 GetMessageW 阻塞期间正确释放
-        _pump.pump_messages()
+        # 消息泵循环：ctypes 调用 GetMessageW 期间会释放 GIL
+        msg = wintypes.MSG()
+        while user32.GetMessageW(byref(msg), None, 0, 0) > 0:
+            user32.TranslateMessage(byref(msg))
+            user32.DispatchMessageW(byref(msg))
 
         # 离开循环之前确保取消钩子
         if self.keyboard_hook:

@@ -169,8 +169,13 @@ class WindowMatch:
             bmi.bmiHeader.biClrUsed = 0
             bmi.bmiHeader.biClrImportant = 0
 
-            # 分配内存
-            buffer_size = width * height * 3
+            # GDI 要求位图每行字节数（stride）必须是 4 的倍数（DWORD 对齐）
+            # 若直接用 width * height * 3，当 width * 3 不是 4 的倍数时，
+            # 每行末尾会被 GDI 填充字节，导致 reshape 后行数据错位、图像倾斜。
+            stride = ((width * 3 + 3) // 4) * 4
+
+            # 分配内存（按 stride 对齐）
+            buffer_size = stride * height
             buffer = ctypes.create_string_buffer(buffer_size)
 
             # 获取位图数据
@@ -178,8 +183,9 @@ class WindowMatch:
                 hdc_mem, hbitmap, 0, height, buffer, ctypes.byref(bmi), 0
             )
 
-            # 转换为numpy数组
-            img_array = np.frombuffer(buffer, dtype=np.uint8).reshape(height, width, 3)
+            # 转换为numpy数组：先按 stride 展开，再丢弃每行末尾的填充字节
+            img_array = np.frombuffer(buffer, dtype=np.uint8).reshape(height, stride)
+            img_array = img_array[:, :width * 3].reshape(height, width, 3)
 
             # 转为RGB格式数组
             img_array = self.data_header.image_to_numpy(img_array, to_rgb=True)
@@ -266,8 +272,11 @@ class WindowMatch:
             bmi.bmiHeader.biClrUsed = 0
             bmi.bmiHeader.biClrImportant = 0
 
-            # 分配内存
-            buffer_size = window_width * window_height * 3
+            # GDI 要求位图每行字节数（stride）必须是 4 的倍数（DWORD 对齐）
+            stride = ((window_width * 3 + 3) // 4) * 4
+
+            # 分配内存（按 stride 对齐）
+            buffer_size = stride * window_height
             buffer = ctypes.create_string_buffer(buffer_size)
 
             # 获取位图数据
@@ -275,8 +284,9 @@ class WindowMatch:
                 hdc_mem, hbitmap, 0, window_height, buffer, ctypes.byref(bmi), 0
             )
 
-            # 转换为numpy数组
-            img_array = np.frombuffer(buffer, dtype=np.uint8).reshape(window_height, window_width, 3)
+            # 转换为numpy数组：先按 stride 展开，再丢弃每行末尾的填充字节
+            img_array = np.frombuffer(buffer, dtype=np.uint8).reshape(window_height, stride)
+            img_array = img_array[:, :window_width * 3].reshape(window_height, window_width, 3)
 
             # 转为RGB格式数组
             img_array = self.data_header.image_to_numpy(img_array, to_rgb=True)
