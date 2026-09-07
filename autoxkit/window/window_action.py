@@ -24,6 +24,15 @@ GetWindowRect = user32.GetWindowRect
 GetWindowRect.argtypes = [wintypes.HWND, ctypes.POINTER(wintypes.RECT)]
 GetWindowRect.restype = wintypes.BOOL
 
+# 客户区坐标转换 / 客户区矩形（64 位 HWND 需显式声明，否则句柄值过大会溢出）
+ClientToScreen = user32.ClientToScreen
+ClientToScreen.argtypes = [wintypes.HWND, ctypes.POINTER(wintypes.POINT)]
+ClientToScreen.restype = wintypes.BOOL
+
+GetClientRect = user32.GetClientRect
+GetClientRect.argtypes = [wintypes.HWND, ctypes.POINTER(wintypes.RECT)]
+GetClientRect.restype = wintypes.BOOL
+
 # 定义窗口消息常量
 WM_KEYDOWN = 0x0100
 WM_KEYUP = 0x0101
