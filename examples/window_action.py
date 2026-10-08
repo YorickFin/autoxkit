@@ -36,9 +36,9 @@ def window_action():
     # window.send_mouse_wheel(-5)
 
     # 发送文字, 需要先点击输入框
-    # window.send_left_click(500, 660)
+    # window.send_mouse_click(x=500, y=660, button=0)
     # time.sleep(1)
-    # window.send_left_click(167, 56)
+    # window.send_mouse_click(x=167, y=56, button=0)
     # time.sleep(1)
     # window.send_text("hello, World!")
 

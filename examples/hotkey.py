@@ -14,10 +14,10 @@ def delete_func():
 
 hook_listener = HookListener()
 hotkey_listener = HotkeyListener(hook_listener=hook_listener, timeout=2.0)
-hotkey_listener.add_hotkey("保存", ("Lctrl", "S"), lambda: save_func())
-hotkey_listener.add_hotkey("查找", ("Lctrl", "F"), lambda: find_func())
-hotkey_listener.add_hotkey("另存", ("Lctrl", "Lshift", "S"), lambda: save_as_func())
-hotkey_listener.add_hotkey("删除", ("Lshift", "Delete"), lambda: delete_func())
+hotkey_listener.add_hotkey("保存", ["LCtrl", "S"], lambda: save_func())
+hotkey_listener.add_hotkey("查找", ["LCtrl", "F"], lambda: find_func())
+hotkey_listener.add_hotkey("另存", ["LCtrl", "LShift", "S"], lambda: save_as_func())
+hotkey_listener.add_hotkey("删除", ["LShift", "Delete"], lambda: delete_func())
 hotkey_listener.start()
 
 if __name__ == "__main__":
