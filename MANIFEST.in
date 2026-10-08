@@ -1,0 +1,5 @@
+include csrc/*.c
+include csrc/*.h
+include csrc/build_dll.ps1
+include autoxkit/hook/_autoxhook.dll
+recursive-include scripts *.py

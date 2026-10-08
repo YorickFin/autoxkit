@@ -1,4 +1,4 @@
-﻿"""scrcpy-server v4.0 的控制消息和设备消息序列化器。"""
+"""scrcpy-server v4.0 的控制消息和设备消息序列化器。"""
 
 from __future__ import annotations
 

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "autoxkit"
-version = "2.4.9"
+version = "2.5.1"
 description = "Python library for Windows automation and Android device screen casting and control"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -34,4 +34,14 @@ classifiers = [
 Homepage = "https://github.com/YorickFin/autoxkit"
 
 [tool.setuptools.packages.find]
-exclude = ["examples*"]
+exclude = [
+  "examples*",
+  "pyWinhook*",
+  "csrc*",
+  "scripts*",
+  "build*",
+  "dist*",
+]
+
+[tool.setuptools.package-data]
+"autoxkit.hook" = ["_autoxhook.dll"]

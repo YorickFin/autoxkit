@@ -1,352 +1,306 @@
 # hook_listener.py
-import ctypes
-from ctypes import wintypes, Structure, POINTER, CFUNCTYPE, byref
+"""低级键盘/鼠标钩子监听器。
+
+核心事件链路由 _autoxhook.dll（纯 Win32 C，见项目 csrc/ 目录）承担：
+钩子安装、消息泵线程、结构体解析、订阅掩码短路、按键状态跟踪均在 C 层完成，
+Python 只接收已解析的语义化整数参数。空订阅事件完全不进入 Python/GIL。
+
+DLL 缺失、位数不匹配或加载失败时，自动回退到 _ctypes_fallback 的纯 ctypes
+实现（功能等价，性能为迁移前基线）。
+"""
+import sys
 import threading
-import time
+from ctypes import POINTER, byref, c_int
+
 from .event import KeyEvent, MouseEvent
 from ..constants import Hex_Hook_Code
 
 HHC = Hex_Hook_Code
 
-# ---------- 结构体定义 ----------
-class KBDLLHOOKSTRUCT(Structure):
-    _fields_ = [
-        ("vkCode", wintypes.DWORD),
-        ("scanCode", wintypes.DWORD),
-        ("flags", wintypes.DWORD),
-        ("time", wintypes.DWORD),
-        ("dwExtraInfo", ctypes.c_size_t),
-    ]
+# ---------- 原生 DLL 加载（失败自动回退） ----------
+try:
+    from ._native import (
+        AXH_KEY_DOWN,
+        AXH_KEY_UP,
+        AXH_M_LDOWN,
+        AXH_M_LUP,
+        AXH_M_MDOWN,
+        AXH_M_MUP,
+        AXH_M_RDOWN,
+        AXH_M_RUP,
+        AXH_M_WHEEL,
+        AXH_M_XDOWN,
+        AXH_M_XUP,
+        KEY_CB,
+        MOUSE_CB,
+        START_ERRORS,
+        load_dll,
+    )
+    _dll = load_dll()
+    _NATIVE = True
+except OSError:
+    _dll = None
+    _NATIVE = False
 
-class MSLLHOOKSTRUCT(Structure):
-    _fields_ = [
-        ("pt", wintypes.POINT),
-        ("mouseData", wintypes.DWORD),
-        ("flags", wintypes.DWORD),
-        ("time", wintypes.DWORD),
-        ("dwExtraInfo", ctypes.c_size_t),
-    ]
+if not _NATIVE:
+    from ._ctypes_fallback import HookListener
+else:
 
-# ---------- 回调类型 ----------
-HOOKPROC = CFUNCTYPE(ctypes.c_long, ctypes.c_int, wintypes.WPARAM, wintypes.LPARAM)
-
-# ---------- 加载 DLL 并声明 API 签名 ----------
-user32 = ctypes.WinDLL('user32', use_last_error=True)
-kernel32 = ctypes.WinDLL('kernel32', use_last_error=True)
-
-# SetWindowsHookExW
-user32.SetWindowsHookExW.argtypes = [wintypes.INT, HOOKPROC, ctypes.c_void_p, wintypes.DWORD]
-user32.SetWindowsHookExW.restype = wintypes.HHOOK
-
-# CallNextHookEx
-user32.CallNextHookEx.argtypes = [wintypes.HHOOK, ctypes.c_int, wintypes.WPARAM, wintypes.LPARAM]
-user32.CallNextHookEx.restype = ctypes.c_long
-
-# UnhookWindowsHookEx
-user32.UnhookWindowsHookEx.argtypes = [wintypes.HHOOK]
-user32.UnhookWindowsHookEx.restype = wintypes.BOOL
-
-# GetModuleHandleW
-kernel32.GetModuleHandleW.argtypes = [wintypes.LPCWSTR]
-kernel32.GetModuleHandleW.restype = wintypes.HMODULE
-
-# GetCursorPos
-user32.GetCursorPos.argtypes = [POINTER(wintypes.POINT)]
-user32.GetCursorPos.restype = wintypes.BOOL
-
-# Message functions used in the pump loop
-user32.PeekMessageW.argtypes = [POINTER(wintypes.MSG), wintypes.HWND, wintypes.UINT, wintypes.UINT, wintypes.UINT]
-user32.PeekMessageW.restype = wintypes.BOOL
-user32.TranslateMessage.argtypes = [POINTER(wintypes.MSG)]
-user32.TranslateMessage.restype = wintypes.BOOL
-user32.DispatchMessageW.argtypes = [POINTER(wintypes.MSG)]
-user32.DispatchMessageW.restype = ctypes.c_long
-user32.GetMessageW.argtypes = [POINTER(wintypes.MSG), wintypes.HWND, wintypes.UINT, wintypes.UINT]
-user32.GetMessageW.restype = wintypes.BOOL
-user32.PostThreadMessageW.argtypes = [wintypes.DWORD, wintypes.UINT, wintypes.WPARAM, wintypes.LPARAM]
-user32.PostThreadMessageW.restype = wintypes.BOOL
-
-# ---------- HookListener 类 ----------
-class HookListener:
-    """
-    每个实例可以独立运行、独立添加多个回调（keydown/keyup/mousedown/mouseup）
-    """
-    def __init__(self):
-        # 回调列表（支持多个回调）
-        self._on_keydown = []
-        self._on_keyup = []
-        self._on_mousedown = []
-        self._on_mouseup = []
-
-        # 钩子与线程状态
-        self._thread = None
-        self.keyboard_hook = None
-        self.mouse_hook = None
-        self._stop_event = threading.Event()
-
-        # 必须保存CFUNCTYPE对象引用，避免被GC回收
-        # 绑定到实例的 method（bound method）是合法的 callable
-        self._keyboard_proc_c = HOOKPROC(self._keyboard_proc)
-        self._mouse_proc_c = HOOKPROC(self._mouse_proc)
-
-        # module handles
-        self._hMod = kernel32.GetModuleHandleW(None)
-
-    # 注册回调
-    def add_handler(self, event_type: str, func):
+    class HookListener:
         """
-            注册回调
-        Args:
-            event_type (str): 事件类型，可选值为 "keydown"、"keyup"、"mousedown"、"mouseup"
-            func (callable): 回调函数，参数为 KeyEvent 或 MouseEvent 对象
+        每个实例可以独立运行、独立添加多个回调（keydown/keyup/mousedown/mouseup）
         """
-        if not callable(func):
-            raise ValueError("func must be a callable object")
 
-        if event_type == "keydown":
-            self._on_keydown.append(func)
-        elif event_type == "keyup":
-            self._on_keyup.append(func)
-        elif event_type == "mousedown":
-            self._on_mousedown.append(func)
-        elif event_type == "mouseup":
-            self._on_mouseup.append(func)
-        else:
-            raise ValueError("unknown event_type: " + str(event_type))
+        def __init__(self):
+            # 回调列表（支持多个回调）
+            self._on_keydown = []
+            self._on_keyup = []
+            self._on_mousedown = []
+            self._on_mouseup = []
 
-    # 移除回调（可选）
-    def remove_handler(self, event_type: str, func):
-        """
-            移除回调
-        Args:
-            event_type (str): 事件类型，可选值为 "keydown"、"keyup"、"mousedown"、"mouseup"
-            func (callable): 回调函数，参数为 KeyEvent 或 MouseEvent 对象
-        """
-        if not callable(func):
-            raise ValueError("func must be a callable object")
+            # 注册/启停路径的并发保护（事件热路径无锁）
+            self._handlers_lock = threading.Lock()
 
-        target = None
-        if event_type == "keydown":
-            target = self._on_keydown
-        elif event_type == "keyup":
-            target = self._on_keyup
-        elif event_type == "mousedown":
-            target = self._on_mousedown
-        elif event_type == "mouseup":
-            target = self._on_mouseup
-        else:
-            raise ValueError("unknown event_type: " + str(event_type))
-        try:
-            target.remove(func)
-        except ValueError:
-            raise ValueError("function not found: " + str(func))
+            # DLL 监听器句柄（<0 表示未启动）
+            self._handle = -1
+            self._stop_event = threading.Event()
 
-    # 获取当前鼠标位置
-    def get_mouse_position(self):
-        """
-            获取当前鼠标位置
-        Returns:
-            tuple[int, int]: 鼠标位置 (x, y)
-        """
-        pt = wintypes.POINT()
-        if user32.GetCursorPos(byref(pt)):
-            return (pt.x, pt.y)
-        else:
+            # 必须保存 WINFUNCTYPE 对象引用，避免被 GC 回收
+            self._key_cb = KEY_CB(self._on_key_event)
+            self._mouse_cb = MOUSE_CB(self._on_mouse_event)
+
+        # 注册回调
+        def add_handler(self, event_type: str, func):
+            """
+                注册回调
+            Args:
+                event_type (str): 事件类型，可选值为 "keydown"、"keyup"、"mousedown"、"mouseup"
+                func (callable): 回调函数，参数为 KeyEvent 或 MouseEvent 对象
+            """
+            if not callable(func):
+                raise ValueError("func must be a callable object")
+
+            with self._handlers_lock:
+                if event_type == "keydown":
+                    self._on_keydown.append(func)
+                elif event_type == "keyup":
+                    self._on_keyup.append(func)
+                elif event_type == "mousedown":
+                    self._on_mousedown.append(func)
+                elif event_type == "mouseup":
+                    self._on_mouseup.append(func)
+                else:
+                    raise ValueError("unknown event_type: " + str(event_type))
+                self._refresh_masks()
+
+        # 移除回调（可选）
+        def remove_handler(self, event_type: str, func):
+            """
+                移除回调
+            Args:
+                event_type (str): 事件类型，可选值为 "keydown"、"keyup"、"mousedown"、"mouseup"
+                func (callable): 回调函数，参数为 KeyEvent 或 MouseEvent 对象
+            """
+            if not callable(func):
+                raise ValueError("func must be a callable object")
+
+            with self._handlers_lock:
+                if event_type == "keydown":
+                    target = self._on_keydown
+                elif event_type == "keyup":
+                    target = self._on_keyup
+                elif event_type == "mousedown":
+                    target = self._on_mousedown
+                elif event_type == "mouseup":
+                    target = self._on_mouseup
+                else:
+                    raise ValueError("unknown event_type: " + str(event_type))
+                try:
+                    target.remove(func)
+                except ValueError:
+                    raise ValueError("function not found: " + str(func))
+                self._refresh_masks()
+
+        # 根据回调列表刷新 DLL 订阅掩码（须持有 _handlers_lock）
+        def _refresh_masks(self):
+            if self._handle < 0:
+                return
+            key_mask = 0
+            if self._on_keydown:
+                key_mask |= AXH_KEY_DOWN
+            if self._on_keyup:
+                key_mask |= AXH_KEY_UP
+            mouse_mask = 0
+            if self._on_mousedown:
+                mouse_mask |= (
+                    AXH_M_LDOWN | AXH_M_RDOWN | AXH_M_MDOWN | AXH_M_XDOWN
+                )
+            if self._on_mouseup:
+                mouse_mask |= AXH_M_LUP | AXH_M_RUP | AXH_M_MUP | AXH_M_XUP
+            # 滚轮同时驱动 down/up 两个回调列表，任一非空即订阅
+            if self._on_mousedown or self._on_mouseup:
+                mouse_mask |= AXH_M_WHEEL
+            _dll.axh_set_masks(self._handle, key_mask, mouse_mask)
+
+        # 获取当前鼠标位置
+        def get_mouse_position(self):
+            """
+                获取当前鼠标位置
+            Returns:
+                tuple[int, int]: 鼠标位置 (x, y)
+            """
+            x = c_int(0)
+            y = c_int(0)
+            if _dll.axh_get_cursor_pos(byref(x), byref(y)) == 0:
+                return (x.value, y.value)
+            import ctypes
+
             raise ctypes.WinError(ctypes.get_last_error())
 
-    # 内部键盘回调（bound method -> can be wrapped by CFUNCTYPE）
-    def _keyboard_proc(self, nCode, wParam, lParam):
-        if nCode >= 0:
-            try:
-                kbd = ctypes.cast(lParam, POINTER(KBDLLHOOKSTRUCT)).contents
-                if wParam in (HHC["KeyDown"], HHC["SysKeyDown"]):
-                    event = KeyEvent('KeyDown', kbd.vkCode)
-                    for cb in self._on_keydown:
-                        try:
-                            result = cb(event)
-                            if result is True:
-                                return 1  # 截断事件传播
-                        except ValueError as e:
-                            print(f"[hook_listener] ValueError in keydown callback: {e}", file=__import__('sys').stderr)
-                        except Exception as e:
-                            print(f"[hook_listener] Exception in keydown callback: {e}", file=__import__('sys').stderr)
-                elif wParam in (HHC["KeyUp"], HHC["SysKeyUp"]):
-                    event = KeyEvent('KeyUp', kbd.vkCode)
-                    for cb in self._on_keyup:
-                        try:
-                            result = cb(event)
-                            if result is True:
-                                return 1  # 截断事件传播
-                        except ValueError as e:
-                            print(f"[hook_listener] ValueError in keyup callback: {e}", file=__import__('sys').stderr)
-                        except Exception as e:
-                            print(f"[hook_listener] Exception in keyup callback: {e}", file=__import__('sys').stderr)
-            except Exception as e:
-                print(f"[hook_listener] Exception in _keyboard_proc: {e}", file=__import__('sys').stderr)
+        # 内部键盘回调（由 DLL 的 C 回调以纯整数参数调用，仅订阅事件会到达）
+        def _on_key_event(self, msg, vk_code, scan_code, flags, time):
+            if msg in (HHC["KeyDown"], HHC["SysKeyDown"]):
+                event = KeyEvent('KeyDown', vk_code)
+                for cb in self._on_keydown:
+                    try:
+                        result = cb(event)
+                        if result is True:
+                            return 1  # 截断事件传播
+                    except ValueError as e:
+                        print(f"[hook_listener] ValueError in keydown callback: {e}", file=sys.stderr)
+                    except Exception as e:
+                        print(f"[hook_listener] Exception in keydown callback: {e}", file=sys.stderr)
+            else:
+                event = KeyEvent('KeyUp', vk_code)
+                for cb in self._on_keyup:
+                    try:
+                        result = cb(event)
+                        if result is True:
+                            return 1  # 截断事件传播
+                    except ValueError as e:
+                        print(f"[hook_listener] ValueError in keyup callback: {e}", file=sys.stderr)
+                    except Exception as e:
+                        print(f"[hook_listener] Exception in keyup callback: {e}", file=sys.stderr)
+            return 0  # 放行
 
-        return user32.CallNextHookEx(self.keyboard_hook, nCode, wParam, lParam)
-
-    # 内部鼠标回调
-    def _mouse_proc(self, nCode, wParam, lParam):
-        if nCode >= 0:
-            try:
-                ms = ctypes.cast(lParam, POINTER(MSLLHOOKSTRUCT)).contents
-                x, y = ms.pt.x, ms.pt.y
-
-                if wParam in (HHC["MLeftDown"], HHC["MRightDown"], HHC["MiddleDown"], HHC["XDown"]):
-                    button = self._get_mouse_button(wParam, ms.mouseData)
-                    event = MouseEvent("MouseDown", button, x, y)
+        # 内部鼠标回调（由 DLL 的 C 回调以纯整数参数调用）
+        # data 语义由 msg 决定：滚轮=有符号原始 delta；X键=1(MSide1)/2(MSide2)；其余=0
+        def _on_mouse_event(self, msg, x, y, data, flags, time):
+            if msg == HHC["MWheel"]:
+                delta = data / 120
+                if delta > 0:
+                    blocked = False
+                    event = MouseEvent("MouseDown", "MUWheel", x, y, distance=delta)
                     for cb in self._on_mousedown:
                         try:
                             result = cb(event)
                             if result is True:
-                                return 1  # 截断事件传播
+                                blocked = True
                         except Exception as e:
-                            print(f"[hook_listener] Exception in mousedown callback: {e}", file=__import__('sys').stderr)
+                            print(f"[hook_listener] Exception in mousedown callback: {e}", file=sys.stderr)
 
-                elif wParam in (HHC["MLeftUp"], HHC["MRightUp"], HHC["MiddleUp"], HHC["XUp"]):
-                    button = self._get_mouse_button(wParam, ms.mouseData)
-                    event = MouseEvent("MouseUp", button, x, y)
+                    event = MouseEvent("MouseUp", "MUWheel", x, y, distance=delta)
                     for cb in self._on_mouseup:
                         try:
                             result = cb(event)
                             if result is True:
-                                return 1  # 截断事件传播
+                                blocked = True
                         except Exception as e:
-                            print(f"[hook_listener] Exception in mouseup callback: {e}", file=__import__("sys").stderr)
+                            print(f"[hook_listener] Exception in mouseup callback: {e}", file=sys.stderr)
 
-                elif wParam == HHC["MWheel"]:
-                    delta = ctypes.c_short(ms.mouseData >> 16).value / 120
-                    if delta > 0:
-                        blocked = False
-                        event = MouseEvent("MouseDown", "MUWheel", x, y, distance=delta)
-                        for cb in self._on_mousedown:
-                            try:
-                                result = cb(event)
-                                if result is True:
-                                    blocked = True
-                            except Exception as e:
-                                print(f"[hook_listener] Exception in mousedown callback: {e}", file=__import__("sys").stderr)
+                    if blocked:
+                        return 1    # 截断事件传播
 
-                        event = MouseEvent("MouseUp", "MUWheel", x, y, distance=delta)
-                        for cb in self._on_mouseup:
-                            try:
-                                result = cb(event)
-                                if result is True:
-                                    blocked = True
-                            except Exception as e:
-                                print(f"[hook_listener] Exception in mouseup callback: {e}", file=__import__("sys").stderr)
+                elif delta < 0:
+                    blocked = False
+                    event = MouseEvent("MouseDown", "MDWheel", x, y, distance=delta)
+                    for cb in self._on_mousedown:
+                        try:
+                            result = cb(event)
+                            if result is True:
+                                blocked = True
+                        except Exception as e:
+                            print(f"[hook_listener] Exception in mousedown callback: {e}", file=sys.stderr)
 
-                        if blocked:
-                            return 1    # 截断事件传播
+                    event = MouseEvent("MouseUp", "MDWheel", x, y, distance=delta)
+                    for cb in self._on_mouseup:
+                        try:
+                            result = cb(event)
+                            if result is True:
+                                blocked = True
+                        except Exception as e:
+                            print(f"[hook_listener] Exception in mouseup callback: {e}", file=sys.stderr)
 
-                    elif delta < 0:
-                        blocked = False
-                        event = MouseEvent("MouseDown", "MDWheel", x, y, distance=delta)
-                        for cb in self._on_mousedown:
-                            try:
-                                result = cb(event)
-                                if result is True:
-                                    blocked = True
-                            except Exception as e:
-                                print(f"[hook_listener] Exception in mousedown callback: {e}", file=__import__("sys").stderr)
+                    if blocked:
+                        return 1    # 截断事件传播
 
-                        event = MouseEvent("MouseUp", "MDWheel", x, y, distance=delta)
-                        for cb in self._on_mouseup:
-                            try:
-                                result = cb(event)
-                                if result is True:
-                                    blocked = True
-                            except Exception as e:
-                                print(f"[hook_listener] Exception in mouseup callback: {e}", file=__import__("sys").stderr)
+            elif msg in (HHC["MLeftDown"], HHC["MRightDown"], HHC["MiddleDown"], HHC["XDown"]):
+                button = self._get_mouse_button(msg, data)
+                event = MouseEvent("MouseDown", button, x, y)
+                for cb in self._on_mousedown:
+                    try:
+                        result = cb(event)
+                        if result is True:
+                            return 1  # 截断事件传播
+                    except Exception as e:
+                        print(f"[hook_listener] Exception in mousedown callback: {e}", file=sys.stderr)
 
-                        if blocked:
-                            return 1    # 截断事件传播
+            elif msg in (HHC["MLeftUp"], HHC["MRightUp"], HHC["MiddleUp"], HHC["XUp"]):
+                button = self._get_mouse_button(msg, data)
+                event = MouseEvent("MouseUp", button, x, y)
+                for cb in self._on_mouseup:
+                    try:
+                        result = cb(event)
+                        if result is True:
+                            return 1  # 截断事件传播
+                    except Exception as e:
+                        print(f"[hook_listener] Exception in mouseup callback: {e}", file=sys.stderr)
 
-            except Exception as e:
-                print(f"[hook_listener] Exception in _mouse_proc: {e}", file=__import__("sys").stderr)
+            return 0  # 放行
 
-        return user32.CallNextHookEx(self.mouse_hook, nCode, wParam, lParam)
+        # 辅助函数：获取鼠标按键名称（C 侧已解析 X 键编号到 data）
+        @staticmethod
+        def _get_mouse_button(wParam, data):
+            if wParam in (HHC["MLeftDown"], HHC["MLeftUp"]):
+                return 'MLeft'
+            elif wParam in (HHC["MRightDown"], HHC["MRightUp"]):
+                return 'MRight'
+            elif wParam in (HHC["MiddleDown"], HHC["MiddleUp"]):
+                return 'Middle'
+            elif wParam in (HHC["XDown"], HHC["XUp"]):
+                return 'MSide1' if data == HHC["MSide1"] else 'MSide2'
 
+        # 启动监听（DLL 内部创建消息泵线程并安装钩子）
+        def start(self):
+            with self._handlers_lock:
+                if self._handle >= 0:
+                    return
+                ret = _dll.axh_start(1, 1, self._key_cb, self._mouse_cb)
+                if ret < 0:
+                    raise RuntimeError(
+                        "autoxhook 启动失败: "
+                        + START_ERRORS.get(ret, f"错误码 {ret}")
+                    )
+                self._handle = ret
+                self._stop_event.clear()
+                self._refresh_masks()
 
-    # 辅助函数：获取鼠标按键名称
-    def _get_mouse_button(self, wParam, mouseData):
-        if wParam in (HHC["MLeftDown"], HHC["MLeftUp"]):
-            return 'MLeft'
-        elif wParam in (HHC["MRightDown"], HHC["MRightUp"]):
-            return 'MRight'
-        elif wParam in (HHC["MiddleDown"], HHC["MiddleUp"]):
-            return 'Middle'
-        elif wParam in (HHC["XDown"], HHC["XUp"]):
-            high = (mouseData >> 16) & 0xFFFF
-            return 'MSide1' if high == HHC["MSide1"] else 'MSide2'
-
-    # 启动监听（新线程 pump message loop）
-    def start(self):
-        # 如果线程已在运行，直接返回
-        if self._thread and self._thread.is_alive():
-            return
-        # 如果停止事件已设置，先清除以便重新开始
-        if self._stop_event.is_set():
-            self._stop_event.clear()
-        self._thread = threading.Thread(target=self._thread_func, daemon=True)
-        self._thread.start()
-
-    # 停止监听并取消钩子
-    def stop(self):
-        self._stop_event.set()
-        # 发送 WM_QUIT 消息唤醒 GetMessageW 阻塞
-        if self._thread and self._thread.is_alive():
-            user32.PostThreadMessageW(self._thread.ident, 0x0012, 0, 0)  # WM_QUIT
-            self._thread.join(timeout=1.0)
-        # 尝试取消钩子（若尚未取消）
-        if self.keyboard_hook:
-            try:
-                user32.UnhookWindowsHookEx(self.keyboard_hook)
-            except Exception:
-                pass
-            self.keyboard_hook = None
-        if self.mouse_hook:
-            try:
-                user32.UnhookWindowsHookEx(self.mouse_hook)
-            except Exception:
-                pass
-            self.mouse_hook = None
-
-    # 阻塞等待直到停止
-    def wait(self):
-        self._stop_event.wait()
-
-    # 线程体：注册钩子并 pump 消息
-    def _thread_func(self):
-        try:
-            # 注册钩子（低级钩子一般可以传 module handle + threadId=0）
-            self.keyboard_hook = user32.SetWindowsHookExW(HHC["Key_LL"], self._keyboard_proc_c, self._hMod, 0)
-            self.mouse_hook = user32.SetWindowsHookExW(HHC["Mouse_LL"], self._mouse_proc_c, self._hMod, 0)
-        except Exception:
-            # 若注册失败，设置停止事件并结束
+        # 停止监听并取消钩子（DLL 内部时序：先断 Python 触达，再卸钩，再释放槽位）
+        def stop(self):
+            with self._handlers_lock:
+                if self._handle < 0:
+                    self._stop_event.set()
+                    return
+                _dll.axh_stop(self._handle)
+                self._handle = -1
             self._stop_event.set()
-            return
 
-        # 消息泵循环：ctypes 调用 GetMessageW 期间会释放 GIL
-        msg = wintypes.MSG()
-        while user32.GetMessageW(byref(msg), None, 0, 0) > 0:
-            user32.TranslateMessage(byref(msg))
-            user32.DispatchMessageW(byref(msg))
+        # 阻塞等待直到停止
+        def wait(self):
+            self._stop_event.wait()
 
-        # 离开循环之前确保取消钩子
-        if self.keyboard_hook:
+        def __del__(self):
             try:
-                user32.UnhookWindowsHookEx(self.keyboard_hook)
+                self.stop()
             except Exception:
                 pass
-            self.keyboard_hook = None
-        if self.mouse_hook:
-            try:
-                user32.UnhookWindowsHookEx(self.mouse_hook)
-            except Exception:
-                pass
-            self.mouse_hook = None
-
-    def __del__(self):
-        self.stop()
