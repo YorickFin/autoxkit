@@ -1,4 +1,4 @@
-﻿"""scrcpy-server v4.0 的异步流读取器和写入器。"""
+"""scrcpy-server v4.0 的异步流读取器和写入器。"""
 
 from __future__ import annotations
 

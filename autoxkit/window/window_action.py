@@ -33,6 +33,11 @@ GetClientRect = user32.GetClientRect
 GetClientRect.argtypes = [wintypes.HWND, ctypes.POINTER(wintypes.RECT)]
 GetClientRect.restype = wintypes.BOOL
 
+# 父窗口链（64 位 HWND 必须显式声明，否则返回值被截断、循环永不收敛）
+GetParent = user32.GetParent
+GetParent.argtypes = [wintypes.HWND]
+GetParent.restype = wintypes.HWND
+
 # 定义窗口消息常量
 WM_KEYDOWN = 0x0100
 WM_KEYUP = 0x0101
@@ -89,6 +94,38 @@ class WindowAction:
 
         self.global_key = False
         self.global_mouse = False
+
+    def _client_position(self):
+        """
+            返回窗口客户区位置
+        Returns:
+            tuple: (x, y) 元组，x 为窗口客户区左上角 x 轴坐标，y 为窗口客户区左上角 y 轴坐标
+        """
+        if self.hwnd:
+            client_point = wintypes.POINT(0, 0)
+            ctypes.windll.user32.ClientToScreen(self.hwnd, ctypes.byref(client_point))
+            self.client_point = client_point
+            return client_point.x, client_point.y
+        raise ValueError("窗口句柄未设置")
+
+    def _activate_window(self):
+        """把窗口（含父窗口链）带到前台"""
+        if not self.hwnd:
+            raise ValueError("窗口句柄未设置")
+
+        current_hwnd = self.hwnd
+        for _ in range(8):
+            parent_hwnd = user32.GetParent(current_hwnd)
+            if parent_hwnd == 0:
+                break
+            current_hwnd = parent_hwnd
+
+        # 两种都开，确保窗口可见并带前台焦点
+        user32.ShowWindow(current_hwnd, 9)
+
+        if user32.GetForegroundWindow() != current_hwnd:
+            user32.SetForegroundWindow(current_hwnd)
+            time.sleep(0.02)
 
     def send_activate_message(self, mode='send'):
         """
@@ -219,6 +256,7 @@ class WindowAction:
             raise ValueError("窗口句柄未设置")
 
         if mode == 'global':
+            self._client_position()
             if x is None or y is None:
                 self.mouse.mouse_down(button=button)
             elif x == -1 and y == -1:
@@ -252,6 +290,7 @@ class WindowAction:
             raise ValueError("窗口句柄未设置")
 
         if mode == 'global':
+            self._client_position()
             if x is None or y is None:
                 self.mouse.mouse_up(button=button)
             elif x == -1 and y == -1:
@@ -300,6 +339,7 @@ class WindowAction:
             raise ValueError("窗口句柄未设置")
 
         if mode == 'global':
+            self._client_position()
             self.mouse.mouse_move(self.client_point.x + x, self.client_point.y + y, duration, steps)
             return
 
@@ -355,6 +395,7 @@ class WindowAction:
             raise ValueError("窗口句柄未设置")
 
         if mode == 'global':
+            self._client_position()
             if x is None or y is None:
                 self.mouse.mouse_wheel(distance=distance)
             else:
