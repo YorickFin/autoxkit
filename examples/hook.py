@@ -5,9 +5,6 @@ return True 监听事件，并阻止事件传播，可以理解为下一个窗�
 """
 
 from autoxkit.hook import HookListener, KeyEvent, MouseEvent
-from autoxkit.mousekey import Mouse
-
-mouse = Mouse()
 
 def key_down(event: KeyEvent):
     print(event.action, event.key_code, event.key_name)

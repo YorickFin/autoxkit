@@ -4,10 +4,10 @@ from autoxkit.mousekey import Mouse
 def match_color_example():
     match = Match()
 
-    # 坐标颜色匹配
+    # 坐标颜色匹配（2元素 tuple 表示屏幕坐标）
     print(match.match_color(
-        source_color=(100, 100),
-        target_color=(200, 200),
+        source_color=(855, 520),
+        target_color=(200, 150, 100),
         similarity=0.8
     ))
 
@@ -25,9 +25,9 @@ def match_color_example():
         similarity=0.8
     ))
 
-    # 混合类型颜色匹配
+    # 混合类型颜色匹配（坐标 + 十六进制）
     print(match.match_color(
-        source_color=(100, 100),
+        source_color=(855, 520),
         target_color='#1F2430',
         similarity=0.8
     ))
