@@ -1,4 +1,4 @@
-
+import time
 import ctypes
 from ctypes import wintypes
 from ctypes.wintypes import RECT
