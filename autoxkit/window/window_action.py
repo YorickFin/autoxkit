@@ -47,6 +47,22 @@ ScreenToClient = user32.ScreenToClient
 ScreenToClient.argtypes = [wintypes.HWND, ctypes.POINTER(wintypes.POINT)]
 ScreenToClient.restype = wintypes.BOOL
 
+# 前台锁定绕过（AttachThreadInput）
+GetWindowThreadProcessId = user32.GetWindowThreadProcessId
+GetWindowThreadProcessId.argtypes = [wintypes.HWND, ctypes.POINTER(wintypes.DWORD)]
+GetWindowThreadProcessId.restype = wintypes.DWORD
+
+GetCurrentThreadId = ctypes.windll.kernel32.GetCurrentThreadId
+GetCurrentThreadId.restype = wintypes.DWORD
+
+AttachThreadInput = user32.AttachThreadInput
+AttachThreadInput.argtypes = [wintypes.DWORD, wintypes.DWORD, wintypes.BOOL]
+AttachThreadInput.restype = wintypes.BOOL
+
+BringWindowToTop = user32.BringWindowToTop
+BringWindowToTop.argtypes = [wintypes.HWND]
+BringWindowToTop.restype = wintypes.BOOL
+
 # 定义窗口消息常量
 WM_KEYDOWN = 0x0100
 WM_KEYUP = 0x0101
@@ -104,6 +120,46 @@ class WindowAction:
 
         self.global_key = False
         self.global_mouse = False
+        # global 模式（SendInput 真实输入）操作前是否自动把目标窗口拉到前台
+        # 关闭后用户需自行确保窗口在前台/未被遮挡，否则点击会落到遮挡物上
+        self.global_auto_activate = True
+
+    def _global_activate(self):
+        """global 模式发送真实输入前，把目标窗口拉到前台。
+        Windows 前台锁定严格，后台进程可能失败；失败时用户需确保窗口在前台。"""
+        if not self.global_auto_activate:
+            return
+        # 沿父窗口链找到顶层窗口
+        current_hwnd = self.hwnd
+        for _ in range(8):
+            parent_hwnd = user32.GetParent(current_hwnd)
+            if parent_hwnd == 0:
+                break
+            current_hwnd = parent_hwnd
+
+        if user32.GetForegroundWindow() == current_hwnd:
+            return
+
+        # 模拟 Alt 键欺骗系统允许切换前台
+        VK_MENU = 0x12
+        KEYEVENTF_KEYUP = 0x0002
+        user32.keybd_event(VK_MENU, 0, 0, 0)
+        user32.keybd_event(VK_MENU, 0, KEYEVENTF_KEYUP, 0)
+
+        # AttachThreadInput 附加到前台线程，再 SetForegroundWindow
+        foreground_hwnd = user32.GetForegroundWindow()
+        foreground_tid = GetWindowThreadProcessId(foreground_hwnd, None)
+        current_tid = GetCurrentThreadId()
+        attached = False
+        if foreground_tid != current_tid:
+            attached = AttachThreadInput(current_tid, foreground_tid, True)
+
+        user32.SetForegroundWindow(current_hwnd)
+
+        if attached:
+            AttachThreadInput(current_tid, foreground_tid, False)
+
+        time.sleep(0.1)
 
     def _client_position(self):
         """
@@ -165,6 +221,7 @@ class WindowAction:
             raise ValueError("窗口句柄未设置")
 
         if mode == 'global':
+            self._global_activate()
             self.key_board.key_down(key_name)
             return
 
@@ -191,6 +248,7 @@ class WindowAction:
             raise ValueError("窗口句柄未设置")
 
         if mode == 'global':
+            self._global_activate()
             self.key_board.key_up(key_name)
             return
 
@@ -266,6 +324,7 @@ class WindowAction:
             raise ValueError("窗口句柄未设置")
 
         if mode == 'global':
+            self._global_activate()
             self._client_position()
             if x is None or y is None:
                 self.mouse.mouse_down(button=button)
@@ -300,6 +359,7 @@ class WindowAction:
             raise ValueError("窗口句柄未设置")
 
         if mode == 'global':
+            self._global_activate()
             self._client_position()
             if x is None or y is None:
                 self.mouse.mouse_up(button=button)
@@ -349,6 +409,7 @@ class WindowAction:
             raise ValueError("窗口句柄未设置")
 
         if mode == 'global':
+            self._global_activate()
             self._client_position()
             if x is None or y is None:
                 return
@@ -410,6 +471,7 @@ class WindowAction:
             raise ValueError("窗口句柄未设置")
 
         if mode == 'global':
+            self._global_activate()
             self._client_position()
             if x is None or y is None:
                 self.mouse.mouse_wheel(distance=distance)
