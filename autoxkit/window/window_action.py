@@ -38,6 +38,15 @@ GetParent = user32.GetParent
 GetParent.argtypes = [wintypes.HWND]
 GetParent.restype = wintypes.HWND
 
+# 鼠标当前位置 / 屏幕→客户区坐标换算（-1,-1 哨兵语义需要）
+GetCursorPos = user32.GetCursorPos
+GetCursorPos.argtypes = [ctypes.POINTER(wintypes.POINT)]
+GetCursorPos.restype = wintypes.BOOL
+
+ScreenToClient = user32.ScreenToClient
+ScreenToClient.argtypes = [wintypes.HWND, ctypes.POINTER(wintypes.POINT)]
+ScreenToClient.restype = wintypes.BOOL
+
 # 定义窗口消息常量
 WM_KEYDOWN = 0x0100
 WM_KEYUP = 0x0101
@@ -86,11 +95,12 @@ class WindowAction:
 
         # 窗口客户区位置
         self.client_point = wintypes.POINT(0, 0)
-        ctypes.windll.user32.ClientToScreen(self.hwnd, ctypes.byref(self.client_point))
-
         # 窗口客户区大小
         self.rect = wintypes.RECT()
-        user32.GetClientRect(self.hwnd, ctypes.byref(self.rect))
+
+        if self.hwnd:
+            ctypes.windll.user32.ClientToScreen(self.hwnd, ctypes.byref(self.client_point))
+            user32.GetClientRect(self.hwnd, ctypes.byref(self.rect))
 
         self.global_key = False
         self.global_mouse = False
@@ -108,7 +118,7 @@ class WindowAction:
             return client_point.x, client_point.y
         raise ValueError("窗口句柄未设置")
 
-    def _activate_window(self):
+    def activate_window(self):
         """把窗口（含父窗口链）带到前台"""
         if not self.hwnd:
             raise ValueError("窗口句柄未设置")
@@ -340,7 +350,12 @@ class WindowAction:
 
         if mode == 'global':
             self._client_position()
-            self.mouse.mouse_move(self.client_point.x + x, self.client_point.y + y, duration, steps)
+            if x is None or y is None:
+                return
+            elif x == -1 and y == -1:
+                self.mouse.mouse_move(x, y, duration, steps)
+            else:
+                self.mouse.mouse_move(self.client_point.x + x, self.client_point.y + y, duration, steps)
             return
 
         # 获取当前鼠标位置（使用记录的位置，如果没有则使用目标位置）
@@ -398,26 +413,39 @@ class WindowAction:
             self._client_position()
             if x is None or y is None:
                 self.mouse.mouse_wheel(distance=distance)
+            elif x == -1 and y == -1:
+                # Mouse 内部会把 -1,-1 翻译为当前鼠标位置
+                self.mouse.mouse_wheel(x, y, distance)
             else:
                 self.mouse.mouse_wheel(self.client_point.x + x, self.client_point.y + y, distance)
             return
 
-        # 获取当前鼠标位置（使用记录的位置，如果没有则使用窗口中心）
-        if x is not None and y is not None:
-            x, y = x, y
+        # send/post 模式：对外 x/y 与 click/down 一致使用客户区坐标；
+        # 但 WM_MOUSEWHEEL 的 lParam 按 MSDN 是屏幕坐标，因此最后统一 ClientToScreen 换算。
+        if x is not None and y is not None and not (x == -1 and y == -1):
+            self.mouse_point = (x, y)
         elif self.mouse_point:
             x, y = self.mouse_point
         else:
-            # 获取窗口矩形
             rect = wintypes.RECT()
-            user32.GetWindowRect(self.hwnd, ctypes.byref(rect))
-            # 使用窗口中心作为默认位置
-            x = (rect.left + rect.right) // 2
-            y = (rect.top + rect.bottom) // 2
+            user32.GetClientRect(self.hwnd, ctypes.byref(rect))
+            x = (rect.right - rect.left) // 2
+            y = (rect.bottom - rect.top) // 2
+            self.mouse_point = (x, y)
 
         self.send_activate_message(mode)
-        # 确保使用屏幕坐标
-        lparam = MAKELPARAM(x, y)
+
+        if x == -1 and y == -1:
+            # 当前鼠标位置本身就是屏幕坐标，直接打包
+            cursor = wintypes.POINT()
+            if not user32.GetCursorPos(ctypes.byref(cursor)):
+                cursor = wintypes.POINT(0, 0)
+            lparam = MAKELPARAM(cursor.x, cursor.y)
+        else:
+            pt = wintypes.POINT(x, y)
+            user32.ClientToScreen(self.hwnd, ctypes.byref(pt))
+            lparam = MAKELPARAM(pt.x, pt.y)
+
         # 高16位是滚轮滚动量，低16位是鼠标状态
         wparam = ((distance * 120) << 16) | (self.mouse_state & 0xFFFF)
 
@@ -427,18 +455,32 @@ class WindowAction:
             SendMessage(self.hwnd, WM_MOUSEWHEEL, wparam, lparam)
 
     def _verify_mouse_point(self, x: int=None, y: int=None):
-        """验证鼠标位置"""
-        if x is not None and y is not None:
-            lparam = MAKELPARAM(x, y)
-            self.mouse_point = (x, y)
-            return lparam
-        elif self.mouse_point:
-            lparam = MAKELPARAM(self.mouse_point[0], self.mouse_point[1])
-            return lparam
-        else:
+        """
+        把对外统一的三态坐标翻译成 WM_MOUSE* 消息的 lParam（客户区坐标）。
+            None,None → 上次记录位置；无记录则客户区中心
+            -1,-1     → 鼠标当前位置（屏幕坐标经 ScreenToClient 换算为客户区坐标）
+            其他 x,y   → 直接作为客户区坐标
+        """
+        if x is None or y is None:
+            if self.mouse_point:
+                return MAKELPARAM(self.mouse_point[0], self.mouse_point[1])
             x = (self.rect.right - self.rect.left) // 2
             y = (self.rect.bottom - self.rect.top) // 2
-            lparam = MAKELPARAM(x, y)
             self.mouse_point = (x, y)
-            return lparam
+            return MAKELPARAM(x, y)
+
+        if x == -1 and y == -1:
+            cursor = wintypes.POINT()
+            if user32.GetCursorPos(ctypes.byref(cursor)):
+                user32.ScreenToClient(self.hwnd, ctypes.byref(cursor))
+                self.mouse_point = (cursor.x, cursor.y)
+                return MAKELPARAM(cursor.x, cursor.y)
+            # 取不到光标位置时退化为客户区中心
+            x = (self.rect.right - self.rect.left) // 2
+            y = (self.rect.bottom - self.rect.top) // 2
+            self.mouse_point = (x, y)
+            return MAKELPARAM(x, y)
+
+        self.mouse_point = (x, y)
+        return MAKELPARAM(x, y)
 

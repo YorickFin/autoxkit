@@ -74,25 +74,6 @@ class Window(WindowAction, WindowMatch):
             return (client_point.x, client_point.y)
         raise ValueError("窗口句柄未设置")
 
-    def activate_window(self):
-        """把窗口（含父窗口链）带到前台"""
-        if not self.hwnd:
-            raise ValueError("窗口句柄未设置")
-
-        current_hwnd = self.hwnd
-        for _ in range(8):
-            parent_hwnd = user32.GetParent(current_hwnd)
-            if parent_hwnd == 0:
-                break
-            current_hwnd = parent_hwnd
-
-        # 两种都开，确保窗口可见并带前台焦点
-        user32.ShowWindow(current_hwnd, 9)
-
-        if user32.GetForegroundWindow() != current_hwnd:
-            user32.SetForegroundWindow(current_hwnd)
-            time.sleep(0.02)
-
     def bind_window(self):
         """
         通过 title_name、class_name 或 hwnd 查找窗口。
