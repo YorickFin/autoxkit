@@ -456,8 +456,13 @@ class WindowMatch:
         if target_image is None:
             raise ValueError("必须提供 target_image 参数")
 
-        # 截取屏幕区域
-        rect = RectTuple(*rect) if rect is not None else RectTuple(0, 0, self.size[0], self.size[1])
+        # 截取屏幕区域（未指定 rect 时默认整个客户区）
+        if rect is not None:
+            rect = RectTuple(*rect)
+        else:
+            client_rect = RECT()
+            user32.GetClientRect(self.hwnd, ctypes.byref(client_rect))
+            rect = RectTuple(0, 0, client_rect.right, client_rect.bottom)
         source_image = self.screenshot(rect)
 
         # 转换为 float32 精度
