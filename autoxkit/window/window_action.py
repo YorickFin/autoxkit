@@ -137,29 +137,12 @@ class WindowAction:
                 break
             current_hwnd = parent_hwnd
 
-        if user32.GetForegroundWindow() == current_hwnd:
-            return
+        # 两种都开，确保窗口可见并带前台焦点
+        user32.ShowWindow(current_hwnd, 9)
 
-        # 模拟 Alt 键欺骗系统允许切换前台
-        VK_MENU = 0x12
-        KEYEVENTF_KEYUP = 0x0002
-        user32.keybd_event(VK_MENU, 0, 0, 0)
-        user32.keybd_event(VK_MENU, 0, KEYEVENTF_KEYUP, 0)
-
-        # AttachThreadInput 附加到前台线程，再 SetForegroundWindow
-        foreground_hwnd = user32.GetForegroundWindow()
-        foreground_tid = GetWindowThreadProcessId(foreground_hwnd, None)
-        current_tid = GetCurrentThreadId()
-        attached = False
-        if foreground_tid != current_tid:
-            attached = AttachThreadInput(current_tid, foreground_tid, True)
-
-        user32.SetForegroundWindow(current_hwnd)
-
-        if attached:
-            AttachThreadInput(current_tid, foreground_tid, False)
-
-        time.sleep(0.1)
+        if user32.GetForegroundWindow() != current_hwnd:
+            user32.SetForegroundWindow(current_hwnd)
+        time.sleep(0.02)
 
     def _client_position(self):
         """
